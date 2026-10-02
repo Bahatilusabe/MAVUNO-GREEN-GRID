@@ -1,0 +1,11 @@
+// Partner Portal styles
+.partner-portal {
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+.partner-portal h1 {
+  color: #1e40af;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
