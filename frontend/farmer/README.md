@@ -1,16 +1,5 @@
-# Frontend - Farmer Portal
+# Farmer Portal
 
-Farmer-specific interface for MAVUNO-GREEN-GRID platform.
+`FarmerPortal.jsx` provides farm overview and details, crops and harvest forecasts, nearby opportunities, recommendations, market prices, impact charts, and a profile/settings view. Farm and market content comes from local sample data; edits are held in React state and are not persisted.
 
-## Overview
-Portal for farmers to manage their farms, crops, and resources.
-
-## Features
-- Farm management
-- Crop monitoring
-- Resource tracking
-- Weather updates
-- Market information
-
-## Getting Started
-See main README for setup instructions.
+Storage, transport, and messages navigation entries currently show placeholder content. Open `#/farmer` (or a subview such as `#/farmer/crops`) in the Vite app. Setup instructions are in [the frontend README](../README.md).

@@ -1,15 +1,5 @@
-# Frontend - Admin Dashboard
+# Admin Dashboard
 
-Admin-specific interface for MAVUNO-GREEN-GRID platform.
+The admin view is implemented by `AdminDashboard.jsx` and uses local fixtures from `data.js`. It displays platform KPIs, waste and county-risk charts, farmer status controls, partner approvals, alerts, and service-health indicators.
 
-## Overview
-Administration dashboard for system management and oversight.
-
-## Features
-- User management
-- System monitoring
-- Analytics and reporting
-- Configuration management
-
-## Getting Started
-See main README for setup instructions.
+Status changes, alert resolution, and dashboard values are held in React state; they are not persisted or sent to an API. Run the app using the instructions in [the frontend README](../README.md), then open `#/admin`.

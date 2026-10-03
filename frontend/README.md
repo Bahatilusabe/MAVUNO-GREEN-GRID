@@ -1,4 +1,28 @@
-# React + Vite
+# Frontend
+
+The frontend is a React 19 single-page application built with Vite. `src/main.jsx` mounts `src/App.jsx`, which selects a dashboard or portal using the URL hash. The pages currently use local sample data and in-memory state; they are not connected to the Python backend.
+
+## Run Locally
+
+From this directory, with Node.js and npm installed:
+
+```powershell
+npm ci
+npm run dev
+```
+
+Open the URL printed by Vite. Routes are `#/dashboard`, `#/farmer`, `#/admin`, and `#/partner`. Farmer subviews are selected with `#/farmer/<view>`.
+
+## Checks
+
+```powershell
+npm run lint
+npm run build
+```
+
+`npm run preview` serves a built bundle locally. See the portal READMEs for each view's current behavior and limitations.
+
+## Vite Scaffold Notes
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
