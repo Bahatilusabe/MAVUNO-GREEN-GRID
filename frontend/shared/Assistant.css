@@ -1,0 +1,14 @@
+.mv-head { display: flex; align-items: center; gap: 10px; }
+.mv-ico { width: 36px; height: 36px; border-radius: 10px; background: #e6f4ec; display: grid; place-items: center; font-size: 18px; flex: none; }
+.mv-sub { display: block; font-size: 12px; color: #5d7266; }
+.mv-chat { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; max-height: 34vh; overflow-y: auto; }
+.mv-bubble { margin: 0; padding: 9px 11px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
+.mv-bubble.ai { background: #f3faf6; border: 1px solid #dcebe2; }
+.mv-bubble.me { background: #11502b; color: #fff; align-self: flex-end; }
+.mv-label { display: block; margin: 10px 0 4px; font-size: 12px; color: #5d7266; }
+.mv-prompt { text-align: left; border: 1px solid #dcebe2; background: #fff; border-radius: 10px; padding: 8px 10px; margin-top: 6px; font: inherit; font-size: 12px; cursor: pointer; }
+.mv-prompt:hover { background: #f3faf6; }
+.mv-form { display: flex; gap: 6px; margin-top: auto; padding-top: 10px; }
+.mv-form input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #dcebe2; border-radius: 10px; font: inherit; }
+.mv-send { background: #11502b; color: #fff; border: 0; border-radius: 10px; padding: 6px 14px; font-weight: 600; cursor: pointer; }
+.mv-foot { display: block; text-align: center; font-size: 12px; color: #5d7266; margin-top: 8px; }

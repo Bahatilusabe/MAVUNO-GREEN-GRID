@@ -42,6 +42,8 @@
 .row-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--g100); display: grid; place-items: center; flex: none; font-size: 18px; }
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .kpi { text-align: center; } .kpi strong { font-size: 22px; color: var(--g700); display: block; } .kpi.danger strong { color: var(--red); }
+.impact-value { display: flex !important; justify-content: center; align-items: center; gap: 6px; }
+.impact-heading { display: flex; align-items: center; gap: 8px; }
 .stat { display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .stat strong { font-size: 15px; display: block; } .stat-icon { font-size: 22px; }
 .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-top: 4px; }
