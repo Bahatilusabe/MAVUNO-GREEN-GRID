@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { toast } from "sonner";
 import { Tabs, Toggle } from "../components/ui";
 
 const LABELS = {
@@ -26,10 +26,8 @@ export default function Profile() {
     "Weekly Reports": true,
   });
   const [lang, setLang] = useState("English");
-  const [saved, setSaved] = useState(false);
   const set = (k) => (e) => {
     setForm({ ...form, [k]: e.target.value });
-    setSaved(false);
   };
 
   return (
@@ -72,14 +70,8 @@ export default function Profile() {
                 placeholder="••••••••"
               />
             </label>
-            <button className="btn" onClick={() => setSaved(true)}>
-              {saved ? (
-                <>
-                  Saved <Check aria-hidden="true" size={16} />
-                </>
-              ) : (
-                "Update Profile"
-              )}
+            <button className="btn" onClick={() => toast.success("Profile updated")}>
+              Update Profile
             </button>
           </div>
           <div className="card">

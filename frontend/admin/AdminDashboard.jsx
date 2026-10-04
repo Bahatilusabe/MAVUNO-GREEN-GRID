@@ -10,6 +10,7 @@ import {
   TriangleAlert,
   UsersRound,
 } from "lucide-react";
+import { toast } from "sonner";
 import Shell from "../shared/Shell";
 import { USERS, PARTNERS, ALERTS_INIT } from "./data";
 import KpiGrid from "./components/KpiGrid";
@@ -53,8 +54,42 @@ export default function AdminDashboard() {
     else document.getElementById(key)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const setUserStatus = (id, s) => setUsers((us) => us.map((u) => (u.id === id ? { ...u, status: s } : u)));
-  const setPartnerStatus = (id, s) => setPartners((ps) => ps.map((p) => (p.id === id ? { ...p, status: s } : p)));
+  const setUserStatus = (id, status) => {
+    const previousStatus = users.find((u) => u.id === id)?.status;
+    if (previousStatus === undefined) return;
+    setUsers((current) => current.map((u) => (u.id === id ? { ...u, status } : u)));
+    toast(`Farmer ${status.toLowerCase()}`, {
+      action: {
+        label: "Undo",
+        onClick: () =>
+          setUsers((current) =>
+            current.map((u) =>
+              u.id === id ? { ...u, status: previousStatus } : u,
+            ),
+          ),
+      },
+    });
+  };
+  const setPartnerStatus = (id, status) => {
+    setPartners((current) =>
+      current.map((p) => (p.id === id ? { ...p, status } : p)),
+    );
+    toast.success(`Partner ${status.toLowerCase()}`);
+  };
+  const resolveAlert = (id) => {
+    const alert = alerts.find((item) => item.id === id);
+    if (!alert) return;
+    setAlerts((current) => current.filter((item) => item.id !== id));
+    toast.success("Alert resolved", {
+      action: {
+        label: "Undo",
+        onClick: () =>
+          setAlerts((current) =>
+            [...current, alert].sort((a, b) => a.id - b.id),
+          ),
+      },
+    });
+  };
 
   return (
     <Shell nav={nav} active={active} onNavigate={jump} title="Admin Dashboard" subtitle="Platform overview for MAVUNO Green Grid" user={USER} alerts={alerts.length}>
@@ -64,7 +99,7 @@ export default function AdminDashboard() {
         <FarmersTable users={users} onStatus={setUserStatus} />
         <div className="ad-grid2"><StatusCard users={users} /><PartnersCard partners={partners} onDecide={setPartnerStatus} /></div>
         <div className="ad-grid2">
-          <AlertsCard alerts={alerts} onResolve={(id) => setAlerts(alerts.filter((a) => a.id !== id))} />
+          <AlertsCard alerts={alerts} onResolve={resolveAlert} />
           <HealthCard />
         </div>
       </div>

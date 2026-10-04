@@ -1,7 +1,21 @@
+import { Sprout } from "lucide-react";
+import EmptyState from "../../shared/EmptyState";
 import { riskClass } from "../constants";
 import { KpiRow, Thumb, FakeMap } from "../components/ui";
 
 export default function MyFarms({ farms, onOpen, onAdd }) {
+  if (!farms.length) {
+    return (
+      <EmptyState
+        icon={Sprout}
+        title="No farms yet"
+        text="Register a farm to start tracking harvests and risk."
+        action="Add farm"
+        onAction={onAdd}
+      />
+    );
+  }
+
   const pins = farms.map((f, i) => ({ x: 25 + i * 22, y: 30 + (i % 2) * 30, color: f.risk === "High" ? "#dc2626" : "#1e7a46", label: f.name }));
   return (
     <div className="split farms-page">

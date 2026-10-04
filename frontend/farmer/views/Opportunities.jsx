@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { toast } from "sonner";
 import { OPPS, OPP_COLOR } from "../../shared/data";
 import { cls } from "../../shared/utils";
 import { Tabs, FakeMap } from "../components/ui";
@@ -43,9 +44,15 @@ export default function Opportunities() {
               </div>
               <button
                 className={cls("btn btn-sm", matched[o.id] && "btn-done")}
-                onClick={() =>
-                  setMatched({ ...matched, [o.id]: !matched[o.id] })
-                }
+                onClick={() => {
+                  const was = matched[o.id];
+                  setMatched((current) => ({ ...current, [o.id]: !was }));
+                  toast[was ? "info" : "success"](
+                    was
+                      ? `Match with ${o.name} removed`
+                      : `Match request sent to ${o.name}`,
+                  );
+                }}
               >
                 {matched[o.id] ? (
                   <>

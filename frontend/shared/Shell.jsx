@@ -1,11 +1,29 @@
-import { useState } from "react";
-import { Bell, CircleHelp, Menu, Shuffle, Sprout } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Bell,
+  CircleHelp,
+  Menu,
+  MessageCircle,
+  Shuffle,
+  Sprout,
+  X,
+} from "lucide-react";
 import { cls } from "./utils";
 
 // nav items: [key, label, icon, badge?]  (badge: true = dot, number = count pill)
-export default function Shell({ nav, active, onNavigate, title, subtitle, user, alerts = 0, actions, aside, children }) {
+export default function Shell({ nav, active, onNavigate, title, subtitle, user, alerts = 0, actions, onBell, aside, children }) {
   const [open, setOpen] = useState(false);
+  const [chat, setChat] = useState(false);
   const pick = (key) => { setOpen(false); onNavigate(key); };
+
+  useEffect(() => {
+    if (!chat) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") setChat(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [chat]);
 
   return (
     <div className={cls("sh", aside && "has-aside")}>
@@ -33,14 +51,30 @@ export default function Shell({ nav, active, onNavigate, title, subtitle, user, 
             {subtitle && <small>{subtitle}</small>}
           </div>
           {actions}
-          <button className="sh-icon" aria-label="Notifications"><Bell aria-hidden="true" size={17} />{alerts > 0 && <span className="sh-badge">{alerts}</span>}</button>
+          <button className="sh-icon" aria-label="Notifications" onClick={onBell}>
+            <Bell aria-hidden="true" size={17} />
+            {alerts > 0 && <span className="sh-badge">{alerts}</span>}
+          </button>
           <button className="sh-icon" aria-label="Help"><CircleHelp aria-hidden="true" size={17} /></button>
           <div className="sh-avatar">{user.initials}</div>
         </header>
         <section className="sh-content">{children}</section>
       </main>
 
-      {aside}
+      {aside && (
+        <>
+          <button className="sh-fab" aria-label="Open AI assistant" onClick={() => setChat(true)}>
+            <MessageCircle size={22} aria-hidden="true" />
+          </button>
+          <div className={cls("sh-aside", chat && "open")}>
+            <button className="sh-aside-close" aria-label="Close assistant" onClick={() => setChat(false)}>
+              <X size={16} aria-hidden="true" />
+            </button>
+            {aside}
+          </div>
+          {chat && <button className="sh-scrim" aria-label="Close AI assistant" onClick={() => setChat(false)} />}
+        </>
+      )}
     </div>
   );
 }

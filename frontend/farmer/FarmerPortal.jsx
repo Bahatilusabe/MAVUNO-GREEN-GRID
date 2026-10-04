@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Hand } from "lucide-react";
+import { toast } from "sonner";
 import { INITIAL_FARMS } from "../shared/data";
 import { FARMER_NAV, FARMER_USER } from "../shared/nav";
 import Shell from "../shared/Shell";
@@ -16,6 +17,17 @@ import Recommendations from "./views/Recommendations";
 import Market from "./views/Market";
 import Impact from "./views/Impact";
 import Profile from "./views/Profile";
+import Storage from "./views/Storage";
+import Transport from "./views/Transport";
+import Messages from "./views/Messages";
+import { NOTIFICATIONS } from "./views/messages/data";
+
+const SUBTITLES = {
+  storage: "Find, compare and reserve storage before your harvest arrives.",
+  transport: "Move your produce efficiently.",
+  impact: "See what MAVUNO Green Grid is helping you save.",
+  messages: "Alerts, buyer updates and system notices in one place.",
+};
 
 export default function FarmerPortal({ initialView = "overview" }) {
   const [view, setView] = useState(initialView);
@@ -23,6 +35,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const [farmId, setFarmId] = useState(1);
   const [adding, setAdding] = useState(false);
   const [county, setCounty] = useState("Kirinyaga");
+  const [notes, setNotes] = useState(NOTIFICATIONS);
   const [greeting] = useState(() => {
     const h = new Date().getHours();
     return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
@@ -35,10 +48,14 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const addFarm = (f) => {
     setFarms([...farms, { id: Date.now(), name: f.name, county: f.county, area: f.area, crop: "Rice", kg: 0, harvest: "—", risk: "Low", perf: 0, type: "Smallholder", water: f.water || "—", irrigation: f.irrigation || "—", stage: "Planning", coords: "—" }]);
     setAdding(false);
+    toast.success(`${f.name} added`);
   };
 
+  const unread = notes.filter((n) => n.unread).length;
+  const nav = FARMER_NAV.map((n) => (n[0] === "messages" ? [n[0], n[1], n[2], unread] : n));
+
   const activeNav = view === "farm" ? "farms" : view === "forecast" ? "crops" : view;
-  const navTitle = (FARMER_NAV.find((n) => n[0] === activeNav) || FARMER_NAV[0])[1];
+  const navTitle = (nav.find((n) => n[0] === activeNav) || nav[0])[1];
   const home = view === "overview";
 
   let content;
@@ -60,18 +77,22 @@ export default function FarmerPortal({ initialView = "overview" }) {
     case "market": content = <Market />; break;
     case "impact": content = <Impact />; break;
     case "settings": content = <Profile />; break;
+    case "storage": content = <Storage farms={farms} />; break;
+    case "transport": content = <Transport go={go} />; break;
+    case "messages": content = <Messages items={notes} setItems={setNotes} go={go} />; break;
     default: content = <div className="card empty">{navTitle} is coming soon.</div>;
   }
 
   return (
     <Shell
-      nav={FARMER_NAV}
+      nav={nav}
       active={activeNav}
       onNavigate={go}
       title={home ? <>{greeting}, Samuel <Hand aria-hidden="true" size={20} /></> : navTitle}
-      subtitle={home ? "Here's what MAVUNO is seeing across your farms today." : undefined}
+      subtitle={home ? "Here's what MAVUNO is seeing across your farms today." : SUBTITLES[view]}
       user={FARMER_USER}
-      alerts={2}
+      alerts={unread}
+      onBell={() => go("messages")}
       actions={
         <select value={county} onChange={(e) => setCounty(e.target.value)} aria-label="County">
           {COUNTIES.map((c) => <option key={c}>{c}</option>)}

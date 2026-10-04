@@ -8,6 +8,16 @@ const GRID = "#dcebe2";
 const axis = { tick: { fontSize: 11, fill: "#5d7266" }, tickLine: false, axisLine: false };
 const MARGIN = { top: 8, right: 8, left: -8, bottom: 0 };
 const id = (v) => v;
+const TIP = {
+  contentStyle: {
+    borderRadius: 10,
+    border: "1px solid #dcebe2",
+    boxShadow: "0 4px 14px rgba(11,61,32,.12)",
+    fontSize: 12,
+    padding: "8px 10px",
+  },
+  labelStyle: { color: "#5d7266", fontWeight: 600, marginBottom: 2 },
+};
 
 export function HarvestChart({ labels, supply, demand, height = 240 }) {
   const data = labels.map((day, i) => ({ day, supply: supply[i], demand: demand[i] }));
@@ -17,7 +27,7 @@ export function HarvestChart({ labels, supply, demand, height = 240 }) {
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey="day" {...axis} />
         <YAxis unit="t" {...axis} />
-        <Tooltip formatter={(v) => `${v} t`} />
+        <Tooltip {...TIP} formatter={(v) => `${v} t`} />
         <Legend iconType="circle" />
         <Area type="monotone" dataKey="supply" name="Expected production" stroke={COLORS.green} fill={COLORS.green} fillOpacity={0.15} strokeWidth={2.5} />
         <Area type="monotone" dataKey="demand" name="Market demand" stroke={COLORS.blue} fill={COLORS.blue} fillOpacity={0.12} strokeWidth={2.5} />
@@ -47,7 +57,7 @@ export function BarsChart({ data, xKey, yKey, color = COLORS.green, format = id,
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey={xKey} {...axis} />
         <YAxis tickFormatter={format} {...axis} />
-        <Tooltip formatter={(v) => format(v)} cursor={{ fill: "#f3faf6" }} />
+        <Tooltip {...TIP} formatter={(v) => format(v)} cursor={{ fill: "#f3faf6" }} />
         <Bar dataKey={yKey} fill={color} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -62,7 +72,7 @@ export function HBars({ data, nameKey, valueKey, height = 220 }) {
         <CartesianGrid stroke={GRID} horizontal={false} />
         <XAxis type="number" domain={[0, 100]} unit="%" {...axis} />
         <YAxis type="category" dataKey={nameKey} width={74} {...axis} />
-        <Tooltip formatter={(v) => `${v}%`} cursor={{ fill: "#f3faf6" }} />
+        <Tooltip {...TIP} formatter={(v) => `${v}%`} cursor={{ fill: "#f3faf6" }} />
         <Bar dataKey={valueKey} radius={[0, 4, 4, 0]} barSize={14}>
           {data.map((d) => <Cell key={d[nameKey]} fill={color(d[valueKey])} />)}
         </Bar>
@@ -78,7 +88,7 @@ export function Donut({ data, unit = "", height = 220 }) {
         <Pie data={data} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="80%" paddingAngle={2}>
           {data.map((d) => <Cell key={d.name} fill={d.color} />)}
         </Pie>
-        <Tooltip formatter={(v) => `${v.toLocaleString()}${unit}`} />
+        <Tooltip {...TIP} formatter={(v) => `${v.toLocaleString()}${unit}`} />
         <Legend iconType="circle" />
       </PieChart>
     </ResponsiveContainer>
@@ -92,7 +102,7 @@ export function TrendLine({ data, xKey, series, format = id, height = 240 }) {
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey={xKey} {...axis} />
         <YAxis tickFormatter={format} {...axis} />
-        <Tooltip formatter={(v) => format(v)} />
+        <Tooltip {...TIP} formatter={(v) => format(v)} />
         <Legend iconType="circle" />
         {series.map((s) => (
           <Line key={s.key} type="monotone" dataKey={s.key} name={s.name} stroke={s.color} strokeWidth={2.5} dot={{ r: 3 }} />

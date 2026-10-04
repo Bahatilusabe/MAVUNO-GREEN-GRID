@@ -1,52 +1,39 @@
-import { CircleDollarSign, Recycle } from "lucide-react";
-import { IMPACT } from "../../shared/data";
-import { BarsChart } from "../../shared/charts";
-import { COLORS } from "../../shared/chartColors";
-import { fmt } from "../../shared/utils";
-
-const k = (v) => (v >= 1000 ? `${v / 1000}k` : v);
+import { Leaf, Banknote, Cloud, Droplets } from "lucide-react";
+import { StatCard } from "../components/page-parts";
+import { STATS, TRENDS } from "./impact/data";
+import Trend from "./impact/Trend";
+import Recovery from "./impact/Recovery";
+import Sources from "./impact/Sources";
+import Reports from "./impact/Reports";
+import Interventions from "./impact/Interventions";
 
 export default function Impact() {
-  const kg = IMPACT.waste.reduce((s, d) => s + d.kg, 0);
-  const kes = IMPACT.income.reduce((s, d) => s + d.kes, 0);
   return (
-    <>
-      <div className="stat-row">
-        <div className="card kpi">
-          <strong className="impact-value">
-            <Recycle aria-hidden="true" size={20} /> {fmt(kg)} kg
-          </strong>
-          <small>Waste avoided</small>
-        </div>
-        <div className="card kpi">
-          <strong className="impact-value">
-            <CircleDollarSign aria-hidden="true" size={20} /> KES {fmt(kes)}
-          </strong>
-          <small>Extra income</small>
-        </div>
+    <div className="pg">
+      <div className="pg-stats">
+        <StatCard icon={Leaf} tone="green" label="Produce Saved" value={STATS.produce} trend={TRENDS.produce} />
+        <StatCard icon={Banknote} tone="green" label="Value Protected" value={STATS.value} trend={TRENDS.value} />
+        <StatCard icon={Cloud} tone="blue" label="CO₂e Avoided" value={STATS.co2} trend={TRENDS.co2} />
+        <StatCard icon={Droplets} tone="blue" label="Water Efficiency" value={STATS.water} trend={TRENDS.water} />
       </div>
-      <div className="split">
-        <div className="card">
-          <h3 className="impact-heading">
-            <Recycle aria-hidden="true" size={18} /> Waste avoided (kg / month)
-          </h3>
-          <BarsChart data={IMPACT.waste} xKey="month" yKey="kg" />
-        </div>
-        <div className="card">
-          <h3 className="impact-heading">
-            <CircleDollarSign aria-hidden="true" size={18} /> Extra income (KES
-            / month)
-          </h3>
-          <BarsChart
-            data={IMPACT.income}
-            xKey="month"
-            yKey="kes"
-            color={COLORS.blue}
-            format={k}
-          />
-        </div>
+      <Trend />
+      <div className="pg-two">
+        <Recovery />
+        <Sources />
       </div>
-      <small>Sample data. Connect to real match results.</small>
-    </>
+      <div className="pg-two wide">
+        <div className="pg-col">
+          <Reports />
+          <Interventions />
+        </div>
+        <section className="pg-green">
+          <Leaf size={28} aria-hidden="true" />
+          <h3>Your Green Impact</h3>
+          <small>Kirinyaga County</small>
+          <p>Small actions, big changes.</p>
+          <p>By using MAVUNO Green Grid, you're protecting farmer income, reducing food waste and fighting climate change.</p>
+        </section>
+      </div>
+    </div>
   );
 }
