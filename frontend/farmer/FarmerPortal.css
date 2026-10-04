@@ -99,4 +99,6 @@ th, td { padding: 10px 8px; border-bottom: 1px solid var(--line); } tr:last-chil
 .chart { width: 100%; height: auto; } .chart .grid { stroke: var(--line); } .chart .axis { fill: var(--muted); font-size: 10px; }
 .risk-box { border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); }
 .risk-box strong { display: block; font-size: 22px; } .risk-box.neutral strong { font-size: 16px; }
-.risk-high { background: #fee2e2; color: var(--red);
+.risk-high { background: #fee2e2; color: var(--red); }
+.risk-medium { background: #fef3c7; color: var(--amber); }
+.risk-low { background: #ecfdf5; color: var(--g700); }
