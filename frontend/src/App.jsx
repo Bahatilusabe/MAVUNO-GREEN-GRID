@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { Handshake, Sprout, Tractor, Truck } from "lucide-react";
 import { Toaster } from "sonner";
+import { PageSkeleton } from "../shared/Skeleton";
 
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
@@ -83,7 +84,8 @@ export default function App() {
 
   return (
     <>
-      <Suspense fallback={<div className="app-loading" role="status">Loading…</div>}>{page}</Suspense>
+      <Suspense fallback={<PageSkeleton />}>{page}</Suspense>
+      <Toaster position="bottom-right" richColors closeButton />
       {path !== "/" && <Switcher path={path} />}
     </>
   );

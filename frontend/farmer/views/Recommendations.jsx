@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   BadgeCheck,
   CircleCheck,
@@ -67,7 +68,16 @@ export default function Recommendations() {
                 aria-label="Dismiss"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setDismissed([...dismissed, r.id]);
+                  setDismissed((current) => [...current, r.id]);
+                  toast("Recommendation dismissed", {
+                    action: {
+                      label: "Undo",
+                      onClick: () =>
+                        setDismissed((current) =>
+                          current.filter((id) => id !== r.id),
+                        ),
+                    },
+                  });
                 }}
               >
                 <X aria-hidden="true" size={16} />

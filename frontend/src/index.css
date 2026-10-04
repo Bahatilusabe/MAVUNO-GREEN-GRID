@@ -13,6 +13,7 @@
 @import "./styles/assistant.css";
 @import "./styles/app.css";
 @import "./styles/shell.css";
+@import "./styles/pages.css";
 
 *, *::before, *::after { box-sizing: border-box; }
 

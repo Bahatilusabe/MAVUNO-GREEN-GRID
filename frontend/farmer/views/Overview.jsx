@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { Sprout } from "lucide-react";
+import EmptyState from "../../shared/EmptyState";
 import StatCards from "./overview/StatCards";
 import RiskWatch from "./overview/RiskWatch";
 import FarmsTable from "./overview/FarmsTable";
@@ -19,6 +21,18 @@ export default function Overview({ farms, go, onOpenFarm }) {
       topFarm: high[0],
     };
   }, [farms]);
+
+  if (!farms.length) {
+    return (
+      <EmptyState
+        icon={Sprout}
+        title="No farms yet"
+        text="Add your first farm to see forecasts, risk alerts and buyer matches."
+        action="Add a farm"
+        onAction={() => go("farms")}
+      />
+    );
+  }
 
   return (
     <div className="ov">

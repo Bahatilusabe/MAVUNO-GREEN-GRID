@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Inbox, Package, Tag } from "lucide-react";
+import { toast } from "sonner";
 import Shell from "../shared/Shell";
 import { REQUESTS_INIT, ORDERS_INIT, STEPS } from "./data";
 import usePartnerStats from "./usePartnerStats";
@@ -20,8 +21,16 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
   const decide = (r, accept) => {
     setRequests((rs) => rs.map((x) => (x.id === r.id ? { ...x, status: accept ? "Accepted" : "Declined" } : x)));
     if (accept) setOrders((os) => [...os, { id: Date.now(), farmer: r.farmer, crop: r.crop, kg: r.kg, price: r.price, date: r.date, status: "Scheduled" }]);
+    toast[accept ? "success" : "info"](
+      accept
+        ? `Accepted ${r.farmer}'s request`
+        : `Declined ${r.farmer}'s request`,
+    );
   };
-  const advance = (id) => setOrders((os) => os.map((o) => (o.id === id ? { ...o, status: STEPS[STEPS.indexOf(o.status) + 1] || o.status } : o)));
+  const advance = (id) => {
+    setOrders((os) => os.map((o) => (o.id === id ? { ...o, status: STEPS[STEPS.indexOf(o.status) + 1] || o.status } : o)));
+    toast.success("Order status updated");
+  };
 
   const nav = [
     ["Requests", "Requests", Inbox, stats.pending],

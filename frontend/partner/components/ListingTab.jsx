@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { toast } from "sonner";
 import { fmt } from "../../shared/utils";
 
 export default function ListingTab({ listing, load, onSave }) {
@@ -7,8 +7,6 @@ export default function ListingTab({ listing, load, onSave }) {
     price: String(listing.price),
     capacity: String(listing.capacity),
   });
-  const [saved, setSaved] = useState(false);
-
   const price = Number(draft.price),
     cap = Number(draft.capacity);
   const error = !(price > 0)
@@ -20,7 +18,6 @@ export default function ListingTab({ listing, load, onSave }) {
         : "";
   const edit = (k) => (e) => {
     setDraft({ ...draft, [k]: e.target.value });
-    setSaved(false);
   };
 
   return (
@@ -54,16 +51,10 @@ export default function ListingTab({ listing, load, onSave }) {
         disabled={!!error}
         onClick={() => {
           onSave(price, cap);
-          setSaved(true);
+          toast.success("Listing saved");
         }}
       >
-        {saved ? (
-          <>
-            Saved <Check aria-hidden="true" size={16} />
-          </>
-        ) : (
-          "Save listing"
-        )}
+        Save listing
       </button>
       <small>Listing changes are local until you connect an API.</small>
     </section>
