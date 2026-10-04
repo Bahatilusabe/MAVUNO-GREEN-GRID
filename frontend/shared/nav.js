@@ -1,4 +1,5 @@
 import {
+  Earth,
   LayoutDashboard,
   Leaf,
   Link2,
@@ -9,10 +10,9 @@ import {
   Tractor,
   Truck,
   Warehouse,
-  Earth,
 } from "lucide-react";
 
-export const NAV = [
+export const FARMER_NAV = [
   ["overview", "Overview", LayoutDashboard],
   ["farms", "My Farms", Tractor],
   ["crops", "Crops & Harvests", Leaf],
@@ -22,9 +22,8 @@ export const NAV = [
   ["storage", "Storage", Warehouse],
   ["transport", "Transport", Truck],
   ["impact", "Impact", Earth],
-  ["messages", "Messages", MessageCircle, true],
+  ["messages", "Messages", MessageCircle, 2],
   ["settings", "Settings", Settings],
 ];
 
-export const COUNTIES = ["Kirinyaga", "Embu", "Murang'a", "Nyeri"];
-export const riskClass = (r) => `pill pill-${r.toLowerCase()}`;
+export const FARMER_USER = { name: "Samuel Kamau", sub: "Kirinyaga County", initials: "SK" };

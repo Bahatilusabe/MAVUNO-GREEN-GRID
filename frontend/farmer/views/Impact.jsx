@@ -1,6 +1,7 @@
 import { CircleDollarSign, Recycle } from "lucide-react";
 import { IMPACT } from "../../shared/data";
-import { BarsChart, COLORS } from "../../shared/charts";
+import { BarsChart } from "../../shared/charts";
+import { COLORS } from "../../shared/chartColors";
 import { fmt } from "../../shared/utils";
 
 const k = (v) => (v >= 1000 ? `${v / 1000}k` : v);

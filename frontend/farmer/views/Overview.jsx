@@ -1,64 +1,38 @@
-import {
-  ChartColumnIncreasing,
-  CircleAlert,
-  Store,
-  Warehouse,
-} from "lucide-react";
-import { RECS } from "../../shared/data";
-import { Donut, PALETTE } from "../../shared/charts";
-import { KpiRow } from "../components/ui";
+import { useMemo } from "react";
+import StatCards from "./overview/StatCards";
+import RiskWatch from "./overview/RiskWatch";
+import FarmsTable from "./overview/FarmsTable";
+import TodayRecs from "./overview/TodayRecs";
+import HarvestOutlook from "./overview/HarvestOutlook";
+import GridActivity from "./overview/GridActivity";
+import EnvImpact from "./overview/EnvImpact";
 
-const RECOMMENDATION_ICONS = {
-  Harvest: CircleAlert,
-  Market: Store,
-  Storage: Warehouse,
-};
+const EXPOSED_SHARE = 0.8; // mock: share of a high-risk harvest assumed exposed
 
-export default function Overview({ farms, go }) {
-  const byCrop = farms.reduce(
-    (m, f) => ({ ...m, [f.crop]: (m[f.crop] || 0) + f.kg }),
-    {},
-  );
-  const mix = Object.entries(byCrop)
-    .filter(([, kg]) => kg > 0)
-    .map(([crop, kg], i) => ({
-      name: crop,
-      value: kg,
-      color: PALETTE[i % PALETTE.length],
-    }));
+export default function Overview({ farms, go, onOpenFarm }) {
+  const m = useMemo(() => {
+    const high = farms.filter((f) => f.risk === "High");
+    return {
+      count: farms.length,
+      tons: farms.reduce((s, f) => s + f.kg, 0) / 1000,
+      exposedKg: Math.round(high.reduce((s, f) => s + f.kg, 0) * EXPOSED_SHARE),
+      topFarm: high[0],
+    };
+  }, [farms]);
 
   return (
-    <>
-      <KpiRow farms={farms} />
-      <div className="split">
-        <div className="card">
-          <h3>Needs attention</h3>
-          {RECS.slice(0, 2).map((r) => (
-            <div key={r.id} className="row">
-              <span className="row-icon">
-                {(() => {
-                  const Icon = RECOMMENDATION_ICONS[r.kind] || CircleAlert;
-                  return <Icon aria-hidden="true" size={18} />;
-                })()}
-              </span>
-              <div className="grow">
-                <strong>{r.title}</strong>
-                <small>{r.text}</small>
-              </div>
-              <button className="btn btn-sm" onClick={() => go("recs")}>
-                Open
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="card">
-          <h3>
-            <ChartColumnIncreasing aria-hidden="true" size={18} /> Expected
-            harvest by crop (kg)
-          </h3>
-          <Donut data={mix} unit=" kg" />
-        </div>
+    <div className="ov">
+      <StatCards m={m} />
+      <RiskWatch m={m} go={go} />
+      <div className="ov-mid">
+        <FarmsTable farms={farms} onOpen={onOpenFarm} go={go} />
+        <TodayRecs go={go} />
       </div>
-    </>
+      <div className="ov-bottom">
+        <HarvestOutlook />
+        <GridActivity />
+        <EnvImpact />
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 export const CROP = {
-  Tomatoes: { emoji: "🍅", tone: "tomato" },
-  "French Beans": { emoji: "🫛", tone: "beans" },
-  Rice: { emoji: "🌾", tone: "rice" },
+  Tomatoes: { tone: "tomato" },
+  "French Beans": { tone: "beans" },
+  Rice: { tone: "rice" },
 };
 
 export const INITIAL_FARMS = [
@@ -20,20 +20,20 @@ export const OPPS = [
 export const OPP_COLOR = { Buyer: "#1e7a46", Processor: "#2f9e5c", Storage: "#2563eb", Transport: "#1e3a8a" };
 
 export const RECS = [
-  { id: 1, kind: "Harvest", icon: "🚨", title: "High Surplus Risk – Tomatoes", text: "Expected surplus of 1,800 kg. Act within 72 hours.", cta: "View Plan", conf: 87, tone: "danger",
+  { id: 1, kind: "Harvest", title: "High Surplus Risk – Tomatoes", text: "Expected surplus of 1,800 kg. Act within 72 hours.", cta: "View Plan", conf: 87, tone: "danger",
     why: [["ok", "Local demand is 40% lower than expected supply"], ["ok", "Storage capacity is limited in your area"], ["ok", "Nearby buyers have available capacity"], ["bad", "Transport is available within 48 km only"]],
     impact: ["+KES 43,000 value", "−1.2 t waste avoided", "−3.4 t CO₂ reduced"] },
-  { id: 2, kind: "Market", icon: "🫛", title: "Better Market Price – French Beans", text: "Nairobi market price is 16% higher than local.", cta: "View Details", conf: 79, tone: "info",
+  { id: 2, kind: "Market", title: "Better Market Price – French Beans", text: "Nairobi market price is 16% higher than local.", cta: "View Details", conf: 79, tone: "info",
     why: [["ok", "Export-grade demand rising this week"], ["ok", "Your harvest window matches buyer needs"], ["bad", "Higher transport cost to Nairobi"]],
     impact: ["+KES 12,500 value", "−0.4 t waste avoided", "−0.9 t CO₂ reduced"] },
-  { id: 3, kind: "Storage", icon: "🏬", title: "Storage Recommendation", text: "Reserve cold storage for 1,800 kg to reduce spoilage risk.", cta: "Reserve Now", conf: 82, tone: "info",
+  { id: 3, kind: "Storage", title: "Storage Recommendation", text: "Reserve cold storage for 1,800 kg to reduce spoilage risk.", cta: "Reserve Now", conf: 82, tone: "info",
     why: [["ok", "Cold storage 10 km away has capacity"], ["ok", "Cuts spoilage risk from High to Low"], ["bad", "Storage fee KES 12/kg/day"]],
     impact: ["+KES 21,600 value", "−1.5 t waste avoided", "−2.8 t CO₂ reduced"] },
 ];
 
 export const BUYERS = [
-  { name: "Nairobi Fresh Markets", sub: "Buyer • 68 km", cap: "1,500 kg capacity", price: "KES 28/kg", icon: "🛍️" },
-  { name: "Kagio Juice Processors", sub: "Processor • 20 km", cap: "2,000 kg capacity", price: "KES 20/kg", icon: "🏭" },
+  { name: "Nairobi Fresh Markets", sub: "Buyer • 68 km", cap: "1,500 kg capacity", price: "KES 28/kg" },
+  { name: "Kagio Juice Processors", sub: "Processor • 20 km", cap: "2,000 kg capacity", price: "KES 20/kg" },
 ];
 
 export const MARKET_PRICES = [

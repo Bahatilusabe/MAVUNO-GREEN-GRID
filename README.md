@@ -154,6 +154,31 @@ MAVUNO-GREEN-GRID
 │  │  ├─ Dashboard.jsx
 │  │  ├─ data.js
 │  │  └─ README.md
+│  ├─ dist
+│  │  ├─ assets
+│  │  │  ├─ AdminDashboard-9e8Xs8M9.css
+│  │  │  ├─ AdminDashboard-CVdh4BcI.js
+│  │  │  ├─ charts-CoATrGSQ.js
+│  │  │  ├─ Dashboard-DmI8Wowt.css
+│  │  │  ├─ Dashboard-lhrPfkPB.js
+│  │  │  ├─ FarmerPortal-DqQ6bg7H.js
+│  │  │  ├─ FarmerPortal-ZGV9b2mi.css
+│  │  │  ├─ geist-cyrillic-ext-wght-normal-DjL33-gN.woff2
+│  │  │  ├─ geist-cyrillic-wght-normal-BEAKL7Jp.woff2
+│  │  │  ├─ geist-latin-ext-wght-normal-DC-KSUi6.woff2
+│  │  │  ├─ geist-latin-wght-normal-BgDaEnEv.woff2
+│  │  │  ├─ geist-vietnamese-wght-normal-6IgcOCM7.woff2
+│  │  │  ├─ index-DJkuCj_B.js
+│  │  │  ├─ index-pE6sOGY5.css
+│  │  │  ├─ leaf-C5apnwhy.js
+│  │  │  ├─ PartnerPortal-BpnB5bL4.css
+│  │  │  ├─ PartnerPortal-O2752bcr.js
+│  │  │  ├─ scale-njWAIpxY.js
+│  │  │  ├─ x-BB-2X2BA.js
+│  │  │  └─ x-DDMUqdKB.css
+│  │  ├─ favicon.svg
+│  │  ├─ icons.svg
+│  │  └─ index.html
 │  ├─ farmer
 │  │  ├─ components
 │  │  │  └─ ui.jsx
@@ -170,6 +195,16 @@ MAVUNO-GREEN-GRID
 │  │     ├─ Market.jsx
 │  │     ├─ MyFarms.jsx
 │  │     ├─ Opportunities.jsx
+│  │     ├─ overview
+│  │     │  ├─ data.js
+│  │     │  ├─ EnvImpact.jsx
+│  │     │  ├─ FarmsTable.jsx
+│  │     │  ├─ GridActivity.jsx
+│  │     │  ├─ HarvestOutlook.jsx
+│  │     │  ├─ RiskWatch.jsx
+│  │     │  ├─ StatCards.jsx
+│  │     │  └─ TodayRecs.jsx
+│  │     ├─ Overview.css
 │  │     ├─ Overview.jsx
 │  │     ├─ Profile.jsx
 │  │     └─ Recommendations.jsx
@@ -233,5 +268,4 @@ MAVUNO-GREEN-GRID
 └─ tests
    ├─ README.md
    └─ test_farm_service.py
-
 ```

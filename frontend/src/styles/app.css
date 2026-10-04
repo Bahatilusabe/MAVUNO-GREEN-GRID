@@ -1,6 +1,6 @@
 /* home */
 .app-home { max-width: 760px; margin: 0 auto; padding: 56px 20px; text-align: center; }
-.app-home h1 { margin: 0 0 6px; font-size: 28px; color: #11502b; }
+.app-home h1 { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 28px; color: #11502b; }
 .app-home p { margin: 0 0 28px; color: #5d7266; }
 .app-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .app-card {
@@ -10,7 +10,7 @@
 }
 .app-card:hover { border-color: #22a05a; transform: translateY(-2px); }
 .app-card:focus-visible { outline: 2px solid #22a05a; outline-offset: 2px; }
-.app-card span { font-size: 30px; }
+.app-card > svg { color: #1e7a46; }
 .app-card small { color: #5d7266; font-size: 12px; }
 
 /* loading */

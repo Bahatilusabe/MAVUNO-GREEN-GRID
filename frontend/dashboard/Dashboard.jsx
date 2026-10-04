@@ -1,6 +1,8 @@
 import { useState } from "react";
-import "./Dashboard.css";
+import { Hand, TriangleAlert } from "lucide-react";
 import { INITIAL_FARMS as FARMS, RECS } from "../shared/data";
+import { FARMER_NAV, FARMER_USER } from "../shared/nav";
+import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
 import KpiGrid from "./components/KpiGrid";
 import ForecastCard from "./components/ForecastCard";
@@ -23,33 +25,43 @@ export default function Dashboard({ onNavigate = () => {}, userName = "Samuel" }
   const recs = RECS.filter((r) => !dismissed.includes(r.id));
 
   return (
-    <div className="db">
-      <div className="db-main">
-        <header className="db-head">
-          <div>
-            <h1>Good day, {userName} 👋</h1>
-            <small>Here's how your farms are doing this week.</small>
-          </div>
-          <button className="db-btn" onClick={() => onNavigate("farms")}>＋ Add Farm</button>
-        </header>
+    <Shell
+      nav={FARMER_NAV}
+      active=""
+      onNavigate={onNavigate}
+      title="Dashboard"
+      subtitle="Your farms at a glance"
+      user={FARMER_USER}
+      alerts={2}
+      aside={<Assistant className="sh-assist" />}
+    >
+      <div className="db">
+        <div className="db-main">
+          <header className="db-head">
+            <div>
+              <h1>Good day, {userName} <Hand aria-hidden="true" size={20} /></h1>
+              <small>Here's how your farms are doing this week.</small>
+            </div>
+            <button className="db-btn" onClick={() => onNavigate("farms")}>＋ Add Farm</button>
+          </header>
 
-        {totals.high > 0 && recs.some((r) => r.id === 1) && (
-          <div className="db-alert" role="alert">
-            <span>🚨</span>
-            <div className="grow"><strong>High surplus risk on Tomatoes</strong><small>1,800 kg may go unsold. Act within 72 hours.</small></div>
-            <button className="db-btn sm" onClick={() => onNavigate("recs")}>View Plan</button>
-          </div>
-        )}
+          {totals.high > 0 && recs.some((r) => r.id === 1) && (
+            <div className="db-alert" role="alert">
+              <TriangleAlert aria-hidden="true" size={20} />
+              <div className="grow"><strong>High surplus risk on Tomatoes</strong><small>1,800 kg may go unsold. Act within 72 hours.</small></div>
+              <button className="db-btn sm" onClick={() => onNavigate("recs")}>View Plan</button>
+            </div>
+          )}
 
-        <KpiGrid totals={totals} onNavigate={onNavigate} />
-        <div className="db-grid2"><ForecastCard /><CropsCard onNavigate={onNavigate} /></div>
-        <div className="db-grid2">
-          <RecsCard recs={recs} onDismiss={(id) => setDismissed([...dismissed, id])} onNavigate={onNavigate} />
-          <OpportunitiesCard onNavigate={onNavigate} />
+          <KpiGrid totals={totals} onNavigate={onNavigate} />
+          <div className="db-grid2"><ForecastCard /><CropsCard onNavigate={onNavigate} /></div>
+          <div className="db-grid2">
+            <RecsCard recs={recs} onDismiss={(id) => setDismissed([...dismissed, id])} onNavigate={onNavigate} />
+            <OpportunitiesCard onNavigate={onNavigate} />
+          </div>
+          <div className="db-grid3"><PricesCard onNavigate={onNavigate} /><WeatherCard /><ActivityCard /></div>
         </div>
-        <div className="db-grid3"><PricesCard onNavigate={onNavigate} /><WeatherCard /><ActivityCard /></div>
       </div>
-      <Assistant className="db-card db-assistant" />
-    </div>
+    </Shell>
   );
 }

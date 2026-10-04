@@ -1,9 +1,10 @@
 import { useState } from "react";
-import "./FarmerPortal.css";
+import { Hand } from "lucide-react";
 import { INITIAL_FARMS } from "../shared/data";
-import { cls } from "../shared/utils";
+import { FARMER_NAV, FARMER_USER } from "../shared/nav";
+import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
-import { NAV, COUNTIES } from "./constants";
+import { COUNTIES } from "./constants";
 import Overview from "./views/Overview";
 import MyFarms from "./views/MyFarms";
 import AddFarmForm from "./views/AddFarmForm";
@@ -22,10 +23,13 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const [farmId, setFarmId] = useState(1);
   const [adding, setAdding] = useState(false);
   const [county, setCounty] = useState("Kirinyaga");
-  const [menu, setMenu] = useState(false);
+  const [greeting] = useState(() => {
+    const h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  });
   const farm = farms.find((f) => f.id === farmId) || farms[0];
 
-  const go = (v) => { setView(v); setAdding(false); setMenu(false); };
+  const go = (v) => { setView(v); setAdding(false); };
   const openFarm = (id) => { setFarmId(id); setView("farm"); };
   const openCrop = (id) => { setFarmId(id); setView("forecast"); };
   const addFarm = (f) => {
@@ -34,11 +38,12 @@ export default function FarmerPortal({ initialView = "overview" }) {
   };
 
   const activeNav = view === "farm" ? "farms" : view === "forecast" ? "crops" : view;
-  const title = (NAV.find((n) => n[0] === activeNav) || NAV[0])[1];
+  const navTitle = (FARMER_NAV.find((n) => n[0] === activeNav) || FARMER_NAV[0])[1];
+  const home = view === "overview";
 
   let content;
   switch (view) {
-    case "overview": content = <Overview farms={farms} go={go} />; break;
+    case "overview": content = <Overview farms={farms} go={go} onOpenFarm={openFarm} />; break;
     case "farms":
       content = (
         <>
@@ -55,35 +60,26 @@ export default function FarmerPortal({ initialView = "overview" }) {
     case "market": content = <Market />; break;
     case "impact": content = <Impact />; break;
     case "settings": content = <Profile />; break;
-    default: content = <div className="card empty">{title} is coming soon.</div>;
+    default: content = <div className="card empty">{navTitle} is coming soon.</div>;
   }
 
   return (
-    <div className="fp">
-      <nav className={cls("sidebar", menu && "open")} aria-label="Main">
-        <div className="brand"><span>🌿</span><div><strong>MAVUNO</strong><small>Green Grid</small></div></div>
-        {NAV.map(([key, label, icon, dot]) => (
-          <button key={key} className={cls("nav-item", activeNav === key && "active")} onClick={() => go(key)}>
-            <span>{icon}</span>{label}{dot && <i className="dot" />}
-          </button>
-        ))}
-        <div className="user"><div className="avatar">SK</div><div><strong>Samuel Kamau</strong><small>Kirinyaga County</small></div></div>
-      </nav>
-
-      <main className="main">
-        <header className="topbar">
-          <button className="burger" aria-label="Menu" onClick={() => setMenu(!menu)}>☰</button>
-          <h1>{title}</h1>
-          <select value={county} onChange={(e) => setCounty(e.target.value)} aria-label="County">
-            {COUNTIES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-          <button className="icon-btn" aria-label="Notifications">🔔</button>
-          <div className="avatar">SK</div>
-        </header>
-        <section className="content">{content}</section>
-      </main>
-
-      <Assistant className="assistant card" />
-    </div>
+    <Shell
+      nav={FARMER_NAV}
+      active={activeNav}
+      onNavigate={go}
+      title={home ? <>{greeting}, Samuel <Hand aria-hidden="true" size={20} /></> : navTitle}
+      subtitle={home ? "Here's what MAVUNO is seeing across your farms today." : undefined}
+      user={FARMER_USER}
+      alerts={2}
+      actions={
+        <select value={county} onChange={(e) => setCounty(e.target.value)} aria-label="County">
+          {COUNTIES.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      }
+      aside={<Assistant className="sh-assist" />}
+    >
+      <div className="fp">{content}</div>
+    </Shell>
   );
 }

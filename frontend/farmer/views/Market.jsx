@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Check, Factory, Store, TrendingUp } from "lucide-react";
 import { BUYERS, MARKET_PRICES, PRICE_TREND } from "../../shared/data";
-import { TrendLine, COLORS } from "../../shared/charts";
+import { TrendLine } from "../../shared/charts"; // <-- Removed COLORS from here
 import { cls } from "../../shared/utils";
 import { Tabs } from "../components/ui";
+
+import { COLORS } from "../../shared/chartColors";
 
 const DEMAND_PILL = {
   High: "pill-high-demand",

@@ -1,7 +1,9 @@
+import { Handshake } from "lucide-react";
+
 export default function PartnersCard({ partners, onDecide }) {
   return (
     <section className="ad-card">
-      <h3>🤝 Partners</h3>
+      <h3><Handshake aria-hidden="true" size={18} /> Partners</h3>
       {partners.map((p) => (
         <div key={p.id} className="ad-row ad-line">
           <div className="grow"><strong>{p.name}</strong><small>{p.type} • {p.county}</small></div>

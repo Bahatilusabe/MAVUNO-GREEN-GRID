@@ -1,7 +1,9 @@
+import { PartyPopper, TriangleAlert } from "lucide-react";
+
 export default function AlertsCard({ alerts, onResolve }) {
   return (
     <section className="ad-card">
-      <h3>🚨 Alerts</h3>
+      <h3><TriangleAlert aria-hidden="true" size={18} /> Alerts</h3>
       {alerts.map((a) => (
         <div key={a.id} className="ad-row ad-line">
           <span className={`ad-pill ${a.level.toLowerCase()}`}>{a.level}</span>
@@ -9,7 +11,7 @@ export default function AlertsCard({ alerts, onResolve }) {
           <button className="ad-btn sm ghost" onClick={() => onResolve(a.id)}>Resolve</button>
         </div>
       ))}
-      {!alerts.length && <p className="ad-empty">No open alerts 🎉</p>}
+      {!alerts.length && <p className="ad-empty"><PartyPopper aria-hidden="true" size={18} /> No open alerts</p>}
     </section>
   );
 }

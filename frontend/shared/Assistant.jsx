@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { Send, Sprout } from "lucide-react";
 import { PROMPTS } from "./data";
-import "./Assistant.css";
 
 const reply = (t) => {
   const l = t.toLowerCase();
@@ -26,7 +26,7 @@ export default function Assistant({ className = "" }) {
   return (
     <aside className={className}>
       <div className="mv-head">
-        <span className="mv-ico">🌿</span>
+        <span className="mv-ico"><Sprout aria-hidden="true" size={20} /></span>
         <div><strong>MAVUNO AI</strong><span className="mv-sub">Your farming assistant</span></div>
       </div>
       <div className="mv-chat" aria-live="polite">
@@ -36,7 +36,7 @@ export default function Assistant({ className = "" }) {
       {PROMPTS.map((p) => <button key={p} className="mv-prompt" onClick={() => send(p)}>{p}</button>)}
       <form className="mv-form" onSubmit={(e) => { e.preventDefault(); send(); }}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask MAVUNO AI…" aria-label="Ask MAVUNO AI" />
-        <button className="mv-send" aria-label="Send">➤</button>
+        <button className="mv-send" aria-label="Send"><Send aria-hidden="true" size={16} /></button>
       </form>
       <span className="mv-foot">Powered by MAVUNO AI</span>
     </aside>

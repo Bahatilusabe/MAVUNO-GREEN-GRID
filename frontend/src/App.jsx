@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
-import "./App.css";
+import { Handshake, Sprout, Tractor, Truck } from "lucide-react";
+import { Toaster } from "sonner";
 
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
@@ -25,19 +26,19 @@ const navigate = (to) => { window.location.hash = to; };
 
 function Home() {
   const cards = [
-    ["🌱", "Farmer dashboard", "Overview of farms, forecasts and alerts", "/dashboard"],
-    ["🚜", "Farmer portal", "Farms, crops, market, AI recommendations", "/farmer"],
-    ["🛡️", "Admin dashboard", "Users, partners, alerts, system health", "/admin"],
-    ["🚚", "Partner portal", "Requests, orders, capacity and pricing", "/partner"],
+    [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "/dashboard"],
+    [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "/farmer"],
+    [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "/admin"],
+    [Truck, "Partner portal", "Requests, orders, capacity and pricing", "/partner"],
   ];
   return (
     <main className="app-home">
-      <h1>🌿 MAVUNO Green Grid</h1>
+      <h1><Sprout aria-hidden="true" size={28} /> MAVUNO Green Grid</h1>
       <p>Pick a view to open.</p>
       <div className="app-cards">
-        {cards.map(([icon, title, text, to]) => (
+        {cards.map(([Icon, title, text, to]) => (
           <a key={to} href={`#${to}`} className="app-card">
-            <span>{icon}</span>
+            <Icon aria-hidden="true" size={30} />
             <strong>{title}</strong>
             <small>{text}</small>
           </a>

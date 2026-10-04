@@ -4,7 +4,7 @@ import { KpiRow, Thumb, FakeMap } from "../components/ui";
 export default function MyFarms({ farms, onOpen, onAdd }) {
   const pins = farms.map((f, i) => ({ x: 25 + i * 22, y: 30 + (i % 2) * 30, color: f.risk === "High" ? "#dc2626" : "#1e7a46", label: f.name }));
   return (
-    <div className="split">
+    <div className="split farms-page">
       <div>
         <KpiRow farms={farms} />
         {farms.map((f) => (
