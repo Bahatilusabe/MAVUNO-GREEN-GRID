@@ -1,0 +1,86 @@
+/* topbar additions */
+.fp .topbar h1 { margin: 0; }
+.fp .icon-btn { position: relative; }
+.fp .badge { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--red); color: #fff; font-size: 10px; font-weight: 700; display: grid; place-items: center; }
+
+/* layout */
+.ov { display: flex; flex-direction: column; gap: 14px; }
+.ov .ov-title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 15px; flex-wrap: wrap; }
+.ov .ov-link { margin-left: auto; background: none; border: 0; color: var(--g700); font-weight: 600; font-size: 12px; padding: 0; }
+.ov .ov-mico { width: 36px; height: 36px; border-radius: 10px; background: var(--g100); display: grid; place-items: center; flex: none; }
+.ov .ov-mico.sm { width: 30px; height: 30px; }
+.ov .ov-mid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; align-items: start; }
+.ov .ov-bottom { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.1fr); gap: 14px; align-items: start; }
+
+/* stat cards */
+.ov .ov-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ov .ov-stat { display: flex; align-items: center; gap: 12px; }
+.ov .ov-stat-ico { width: 44px; height: 44px; border-radius: 50%; background: var(--g100); display: grid; place-items: center; flex: none; }
+.ov .ov-stat strong { display: block; font-size: 24px; line-height: 1.2; }
+.ov .ov-stat.warn { background: #fffbeb; border-color: #fde68a; }
+.ov .ov-stat.warn .ov-stat-ico { background: #fef3c7; }
+.ov .ov-delta { display: block; font-size: 12px; font-weight: 600; color: var(--g700); }
+.ov .ov-delta.bad { color: var(--red); }
+
+/* hero */
+.ov .ov-hero { display: grid; grid-template-columns: 250px minmax(0, 1fr) 280px; padding: 0; overflow: hidden; }
+.ov .ov-map { position: relative; }
+.ov .ov-map .map { border-radius: 0; }
+.ov .ov-maptag { position: absolute; left: 30%; top: 42%; background: var(--red); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+.ov .ov-hero-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.ov .ov-brand { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.ov .ov-brand b { color: var(--g700); font-weight: 600; margin-left: 6px; }
+.ov .ov-headline { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 19px; font-weight: 600; }
+.ov .ov-headline em { font-style: normal; font-weight: 800; color: var(--red); }
+.ov .ov-metrics { display: flex; gap: 28px; flex-wrap: wrap; }
+.ov .ov-metric { display: flex; align-items: center; gap: 10px; }
+.ov .ov-metric strong { display: block; font-size: 20px; }
+.ov .ov-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+.ov .btn-outline { background: #fff; color: var(--g800); border: 1px solid var(--g700); }
+.ov .btn-outline:hover { background: var(--g50); }
+.ov .ov-factors { padding: 16px; background: #f7fbf9; border-left: 1px solid var(--line); }
+.ov .ov-conf { display: flex; align-items: center; gap: 12px; }
+.ov .ov-conf .bar { margin-top: 6px; }
+.ov .ov-factor { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.ov .ov-fv { margin-left: auto; }
+
+/* my farms */
+.ov .ov-farms-head, .ov .ov-farm { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(72px, .65fr); gap: 10px; align-items: center; }
+.ov .ov-farms-head { font-size: 12px; color: var(--muted); padding: 6px 8px; background: var(--g50); border-radius: 8px; }
+.ov .ov-farm { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 8px; text-align: left; color: inherit; }
+.ov .ov-farm:hover { background: var(--g50); }
+.ov .ov-farm:last-child { border-bottom: 0; }
+.ov .ov-farm-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ov .ov-farm > span, .ov .ov-farm-id > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.ov .ov-harvest-date { display: flex; align-items: center; gap: 5px; }
+.ov .ov-harvest-date svg { flex: none; }
+.ov .ov-farm .pill { margin-top: 0; text-align: center; }
+
+/* recommendations */
+.ov .ov-rec { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; margin-top: 8px; }
+
+/* activity */
+.ov .ov-tl-item { position: relative; display: flex; gap: 10px; padding: 8px 0; }
+.ov .ov-tl-item::before { content: ""; position: absolute; left: 15px; top: 40px; bottom: -8px; width: 2px; background: var(--line); }
+.ov .ov-tl-item:last-of-type::before { display: none; }
+.ov .ov-tl-ico { position: relative; z-index: 1; width: 32px; height: 32px; border-radius: 50%; background: var(--g100); display: grid; place-items: center; flex: none; }
+.ov .ov-tl-ico.danger { background: #fee2e2; }
+.ov .ov-ago { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+/* environmental impact */
+.ov .ov-env { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ov .ov-env-tile { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.ov .ov-env-tile strong { display: block; font-size: 18px; }
+
+@media (max-width: 1280px) {
+  .ov .ov-hero { grid-template-columns: 220px minmax(0, 1fr); }
+  .ov .ov-factors { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); }
+  .ov .ov-bottom { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 1000px) {
+  .ov .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov .ov-mid, .ov .ov-bottom { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .ov .ov-hero, .ov .ov-stats { grid-template-columns: 1fr; }
+}

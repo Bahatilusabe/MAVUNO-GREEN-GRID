@@ -1,15 +1,5 @@
-# Database - Views Module
+# Database Views
 
-Database views for MAVUNO-GREEN-GRID platform.
+`views.sql` currently defines `farmer_dashboard_view` and `farm_statistics_view`. It does not define market-summary or intervention-tracking views. The SQL expects the users, farms, and crops tables to exist first.
 
-## Overview
-Defines complex views for easier data access.
-
-## Views
-- farmer_dashboard_view
-- market_summary_view
-- farm_statistics_view
-- intervention_tracking_view
-
-## Documentation
-See individual view definitions.
+There are no separate view-definition files in this folder; review `views.sql` directly before applying it.

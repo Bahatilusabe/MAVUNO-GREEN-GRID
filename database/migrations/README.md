@@ -1,26 +1,7 @@
-# Database - Migrations Module
+# Database Migrations
 
-Database migrations for MAVUNO-GREEN-GRID platform.
+The SQL migration files are numbered and must be reviewed and applied in order. Current files create users, farms, crops, resources, interventions, and transactions tables. They use MySQL-style syntax (`AUTO_INCREMENT`, `ON UPDATE CURRENT_TIMESTAMP`).
 
-## Overview
-Manages database schema versioning and migrations.
+`migrate.py` only defines a `MigrationRunner` class. It has a method for executing one supplied SQL file, but applying all pending migrations and rollback are unimplemented; there is no `python migrate.py up/down` command or database connection setup.
 
-## Migration Files
-- 001_initial_schema.sql
-- 002_add_columns.sql
-- 003_create_indexes.sql
-
-## Running Migrations
-```bash
-python migrate.py up
-```
-
-## Rollback
-```bash
-python migrate.py down
-```
-
-## Best Practices
-- Each migration should be atomic
-- Always include rollback instructions
-- Test migrations locally first
+See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) before applying migrations. Its Oracle-specific instructions are not compatible with the checked-in MySQL-style SQL and should not be followed as-is.

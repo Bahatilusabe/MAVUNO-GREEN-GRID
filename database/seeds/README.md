@@ -1,21 +1,5 @@
-# Database - Seeds Module
+# Database Seeds
 
-Database seeds for MAVUNO-GREEN-GRID platform.
+`seeder.py` defines a `DatabaseSeeder` scaffold. `seed_users` declares sample user rows but does not insert them; farm and crop seeding are unimplemented. There is no `seed.py` executable or command-line interface, so the sample data cannot currently be applied through this module.
 
-## Overview
-Populates database with initial/test data.
-
-## Seed Data
-- Sample users
-- Sample farms
-- Sample crops
-- Test data
-
-## Running Seeds
-```bash
-python seed.py
-```
-
-## Development vs Production
-- Use dev seeds for testing
-- Production should use real data only
+Do not use the placeholder records as production data.

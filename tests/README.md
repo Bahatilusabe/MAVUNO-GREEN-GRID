@@ -1,30 +1,13 @@
-# Test Suite for MAVUNO-GREEN-GRID
+# Tests
 
-## Overview
-Comprehensive testing framework for the platform.
+The current suite consists of `test_farm_service.py`. It is a scaffold: its test methods contain `pass` and do not assert farm-service behavior. There are no unit, integration, end-to-end, or performance test subdirectories in this repository yet.
 
-## Test Types
-- Unit tests
-- Integration tests
-- End-to-end tests
-- Performance tests
+## Run
 
-## Test Structure
-```
-tests/
-├── unit/
-├── integration/
-├── e2e/
-└── performance/
+Install `pytest` in your Python environment, then run from the repository root:
+
+```powershell
+python -m pytest -q
 ```
 
-## Running Tests
-```bash
-pytest -v
-```
-
-## Coverage
-Target: 80%+ code coverage
-
-## CI/CD
-Tests run automatically on PR creation.
+The test suite should be expanded with assertions and database/service fakes before it is used as a regression gate. No CI workflow or coverage target is configured in this repository at present.

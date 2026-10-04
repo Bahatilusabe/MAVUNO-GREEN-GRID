@@ -1,87 +1,20 @@
-# MAVUNO-GREEN-GRID Documentation
+# Documentation Map
 
-## Project Overview
-MAVUNO-GREEN-GRID is a comprehensive agricultural technology platform that connects farmers, markets, and resources through intelligent matching, forecasting, and optimization.
+The repository is a prototype. The React application is runnable; Python backend, AI, data, and integration modules are a mixture of small working examples and unfinished scaffolds. There is no shared Python requirements file, production API server, or generated API reference at this time.
 
-## Platform Components
+## Areas
 
-### Frontend
-- Dashboard for analytics
-- Farmer portal
-- Partner portal
-- Admin dashboard
+- `frontend/README.md`: install, run, lint, and build the Vite application.
+- `frontend/dashboard/README.md`, `frontend/farmer/README.md`, `frontend/partner/README.md`, and `frontend/admin/README.md`: portal behavior and sample-data limitations.
+- `backend/`: service classes and the Flask blueprint in `backend/api/routes.py`. The blueprint currently exposes health and version routes only.
+- `ai/`, `data/`, and `integrations/`: module READMEs describe which methods are implemented and which remain placeholders.
+- `database/`: SQL examples and incomplete Python helpers. Review `database/migrations/MIGRATION_GUIDE.md` alongside the SQL before applying anything; the helper is not a complete migration CLI.
+- `tests/README.md`: current test inventory and limitations.
 
-### Backend
-- RESTful API
-- Authentication system
-- Farm management
-- Crop tracking
-- Resource management
-- Market integration
-- Logistics management
-- Matching engine
-- Intervention recommendations
-- Impact tracking
-- Notification system
+## Frontend Routes
 
-### AI/ML
-- Forecasting models
-- Risk assessment
-- Intelligent matching
-- Optimization algorithms
-- Explainable AI
+The Vite app is served from `frontend/`. Its hash routes are `#/dashboard`, `#/farmer`, `#/admin`, and `#/partner`; farmer views use `#/farmer/<view>`. The portals currently read local fixture data and keep changes in browser memory.
 
-### Data Pipeline
-- Data ingestion
-- Validation
-- Transformation
-- Feature engineering
+## Python Modules
 
-### Database
-- Schema management
-- Migrations
-- Seeds
-- Views
-
-### Integrations
-- Weather services
-- Market data
-- Maps/Geolocation
-- Notifications
-
-## Getting Started
-
-### Prerequisites
-- Python 3.8+
-- Node.js 14+
-- PostgreSQL/MySQL
-- Redis (for caching)
-
-### Installation
-```bash
-git clone https://github.com/Bahatilusabe/MAVUNO-GREEN-GRID.git
-cd MAVUNO-GREEN-GRID
-```
-
-### Backend Setup
-```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
-
-### Frontend Setup
-```bash
-cd frontend
-npm install
-npm start
-```
-
-## API Documentation
-See `/docs/api/` for detailed API documentation.
-
-## Contributing
-See CONTRIBUTING.md for guidelines.
-
-## License
-See LICENSE file.
+There is no root `requirements.txt` or executable backend app. Install module-specific dependencies in an isolated environment before importing Python examples. Many service methods intentionally remain unimplemented; the module READMEs identify those limits.

@@ -1,11 +1,15 @@
 # AI - Explanations Module
 
+**Status:** `ExplainabilityService` is a scaffold. Its explanation, feature-contribution, and text-generation methods all contain `pass`; no explanation method or model support is implemented yet.
+
 Explainable AI for MAVUNO-GREEN-GRID platform.
 
 ## Overview
+
 Provides interpretable AI explanations and insights.
 
 ## Features
+
 - Model explanations
 - Decision reasoning
 - Feature contribution analysis
@@ -13,4 +17,5 @@ Provides interpretable AI explanations and insights.
 - User-friendly explanations
 
 ## Methods
+
 See docs for explanation methodology.
