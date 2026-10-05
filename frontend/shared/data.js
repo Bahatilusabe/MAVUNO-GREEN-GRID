@@ -79,3 +79,16 @@ export const PROMPTS = [
   "When is the best time to harvest?",
   "What's the weather forecast?",
 ];
+
+export async function fetchSurplusAlerts() {
+  try {
+    const response = await fetch("/api/v1/surplus-alerts");
+    if (!response.ok) {
+      throw new Error(`Backend returned HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to connect to MAVUNO AI backend:", error);
+    return null;
+  }
+}

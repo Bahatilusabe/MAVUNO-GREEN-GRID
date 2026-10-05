@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Hand, TriangleAlert } from "lucide-react";
-import { INITIAL_FARMS as FARMS, RECS } from "../shared/data";
+import { fetchSurplusAlerts, INITIAL_FARMS as FARMS, RECS } from "../shared/data";
 import { FARMER_NAV, FARMER_USER } from "../shared/nav";
 import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
@@ -22,7 +22,26 @@ const totals = {
 
 export default function Dashboard({ onNavigate = () => {}, userName = "Samuel" }) {
   const [dismissed, setDismissed] = useState([]);
+  const [backendData, setBackendData] = useState(null);
+  const [globalImpact, setGlobalImpact] = useState(null);
   const recs = RECS.filter((r) => !dismissed.includes(r.id));
+  const liveAlert = backendData?.reduce(
+    (highest, alert) => !highest || alert.risk > highest.risk ? alert : highest,
+    null,
+  );
+  const showFallbackAlert = backendData === null && totals.high > 0 && recs.some((r) => r.id === 1);
+
+  useEffect(() => {
+    let active = true;
+    fetchSurplusAlerts().then((response) => {
+      if (!active || response?.status !== "success") return;
+      setBackendData(Array.isArray(response.data) ? response.data : []);
+      setGlobalImpact(response.global_impact ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <Shell
@@ -45,15 +64,29 @@ export default function Dashboard({ onNavigate = () => {}, userName = "Samuel" }
             <button className="db-btn" onClick={() => onNavigate("farms")}>＋ Add Farm</button>
           </header>
 
-          {totals.high > 0 && recs.some((r) => r.id === 1) && (
+          {liveAlert ? (
+            <div className="db-alert" role="alert">
+              <TriangleAlert aria-hidden="true" size={20} />
+              <div className="grow">
+                <strong>Surplus alert · Week {liveAlert.week}</strong>
+                <small>{liveAlert.ai_explanation}</small>
+                <small>
+                  {Number(liveAlert.surplus_t).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t surplus
+                  {liveAlert.revenue_kes != null && ` · KES ${Number(liveAlert.revenue_kes).toLocaleString("en-KE")} revenue`}
+                </small>
+                <small>Risk score: {Number(liveAlert.risk).toFixed(2)} / 1</small>
+              </div>
+              <button className="db-btn sm" onClick={() => onNavigate("recs")}>View Plan</button>
+            </div>
+          ) : showFallbackAlert ? (
             <div className="db-alert" role="alert">
               <TriangleAlert aria-hidden="true" size={20} />
               <div className="grow"><strong>High surplus risk on Tomatoes</strong><small>1,800 kg may go unsold. Act within 72 hours.</small></div>
               <button className="db-btn sm" onClick={() => onNavigate("recs")}>View Plan</button>
             </div>
-          )}
+          ) : null}
 
-          <KpiGrid totals={totals} onNavigate={onNavigate} />
+          <KpiGrid totals={totals} globalImpact={globalImpact} onNavigate={onNavigate} />
           <div className="db-grid2"><ForecastCard /><CropsCard onNavigate={onNavigate} /></div>
           <div className="db-grid2">
             <RecsCard recs={recs} onDismiss={(id) => setDismissed([...dismissed, id])} onNavigate={onNavigate} />

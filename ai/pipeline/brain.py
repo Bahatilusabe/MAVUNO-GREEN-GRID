@@ -56,6 +56,8 @@ CHOICE_FORMAT = """{
     {"week": 3,
      "allocations": [{"option": "<option name>", "tonnes": 0.0}],
      "unallocated_t": 0.0,
+     "store_t": 0.0, 
+     "release_t": 0.0,
      "reasoning": "under 20 words"}
   ],
   "warnings": ["anything odd or risky in the input data"]
@@ -65,19 +67,47 @@ SYSTEM_PROMPT = f"""You are the allocation decision-maker of a food-surplus netw
 All forecasts, risk scores and option scores in the facts were calculated and
 verified by code. Do NOT recompute or change them.
 
-Your job: for EVERY week listed in "decide_weeks", decide how many tonnes of that
-week's surplus go to each option.
-- The option scores combine value, distance, speed and environmental impact. Use
-  them as evidence, not as a rule: you may deviate when you can justify it.
-- Weigh the week's risk: the higher the risk, the more speed (lead_days) and
-  certainty matter compared with price.
-- Never exceed an option's capacity_t_per_week.
-- Place as much as possible. Tonnes may be left in unallocated_t ONLY if every
-  option is already full.
-- Allocated tonnes + unallocated_t must equal that week's surplus_t.
-- Use option names exactly as given. Keep each "reasoning" under 20 words.
-Reply with ONLY one compact JSON object (no comments, no trailing commas, no
-other text) in this format:
+Your job: decide allocations across ALL weeks to maximize total tonnes saved and
+net value while avoiding spoilage. Use each week's surplus, risk, option scores,
+and spare_capacity_t as the evidence for your decisions.
+
+Cold Storage Rules (Facility: Mwea cold room):
+- Capacity: 150 tonnes maximum.
+- Holding limit: produce may be held for at most 2 weeks before it spoils.
+- 'store_t': put this week's overflow into multi-week cold storage.
+- 'release_t': take tomatoes out of cold storage to sell in a week with
+    spare_capacity_t. Do not release more than that week's spare capacity.
+- "Cold store (Mwea)" in the options list is an immediate buyer route. It is
+    separate from the "Mwea cold room" multi-week storage facility used by
+    store_t and release_t. Do not confuse them.
+- For each week, calculate the available tonnes as surplus_t + release_t.
+    Include an allocation entry for EVERY option, even when its tonnes are 0.
+    Allocate across all immediate options, including "Cold store (Mwea)", without
+    exceeding any option's capacity_t_per_week. Do not omit an option just because
+    other routes have higher scores.
+- Let total_option_capacity be the sum of all options' capacity_t_per_week.
+    The total allocated must be min(available tonnes, total_option_capacity).
+    Only overflow beyond that amount may enter multi-week storage:
+    store_t = min(max(0, available tonnes - total_option_capacity), remaining
+    storage capacity). Thus, if available tonnes do not exceed total option
+    capacity, store_t MUST be 0. Any remaining tonnes after storage go in
+    unallocated_t.
+- Release stored tonnes only when the receiving week's option capacity is idle.
+    Use the actual spare_capacity_t and option capacities; do not assume a fixed
+    amount can be stored or released in a particular week.
+- Never store produce that will spoil before it can be released.
+
+For EVERY week listed in "decide_weeks", return one choice, including weeks
+with no surplus. Never exceed an option's capacity_t_per_week. Use option names
+exactly as given. Keep each "reasoning" under 20 words.
+
+Weekly balance equation:
+    allocations_sum + store_t + unallocated_t = surplus_t + release_t.
+
+Before the JSON, provide a concise <allocation_plan> block listing each proposed
+storage transfer by store week, release week, and tonnes. Keep it to the plan;
+do not include private step-by-step reasoning. Then provide ONLY one compact
+JSON object (no comments or trailing commas) in this format:
 {CHOICE_FORMAT}"""
 
 
@@ -95,19 +125,55 @@ def compute_facts(situation: dict, reference: dict) -> dict:
                    "impact": round(float(r.impact), 2),
                    "overall": round(float(r.score), 2)},
     } for r in scored.itertuples()]
-    decide = [{"week": w["week"], "supply_t": round(w["supply_t"], 1),
-               "demand_t": w["demand_t"], "surplus_t": round(w["surplus_t"], 1),
-               "risk": round(w["risk"], 2), "alert": w["alert"]}
-              for w in reference["weeks"] if w["surplus_t"] > 0]
+    total_cap = sum(o["capacity_t_per_week"] for o in options)
+    decide = []
+    for w in reference["weeks"]:
+        used = sum(a["tonnes"] for a in w.get("allocations", []))
+        decide.append({
+            "week": w["week"],
+            "supply_t": round(w["supply_t"], 1),
+            "demand_t": w["demand_t"],
+            "surplus_t": round(w["surplus_t"], 1),
+            "risk": round(w["risk"], 2),
+            "alert": w["alert"],
+            "spare_capacity_t": round(total_cap - used, 1),
+        })
     return {"crop": situation["crop"], "alert_threshold":
             situation["assumptions"]["alert_threshold"],
-            "decide_weeks": decide, "options": options}
+            "decide_weeks": decide, "options": options,
+            "total_option_capacity_t": total_cap,
+            "storage": situation["storage"]}
 
 
 def build_messages(facts: dict) -> list:
     """First message pair: the rules, then the verified figures."""
+    total_capacity = facts["total_option_capacity_t"]
+    storage_capacity = facts["storage"]["capacity_t"]
+    below_capacity = next(
+        (w for w in facts["decide_weeks"]
+         if 0 < w["surplus_t"] <= total_capacity), None)
+    above_capacity = next(
+        (w for w in facts["decide_weeks"] if w["surplus_t"] > total_capacity), None)
+    examples = []
+    if below_capacity:
+        examples.append(
+            f"Week {below_capacity['week']} has {below_capacity['surplus_t']:.1f} t "
+            f"available, below total option capacity {total_capacity:.1f} t: "
+            f"allocate exactly {below_capacity['surplus_t']:.1f} t in total, "
+            "store 0 t, and leave 0 t unallocated.")
+    if above_capacity:
+        overflow = above_capacity["surplus_t"] - total_capacity
+        store = min(overflow, storage_capacity)
+        examples.append(
+            f"Week {above_capacity['week']} has {above_capacity['surplus_t']:.1f} t "
+            f"available above total option capacity {total_capacity:.1f} t: "
+            f"allocate {total_capacity:.1f} t in total, store at most "
+            f"{store:.1f} t, and leave any excess after storage unallocated.")
+    user_content = "Facts:\n" + json.dumps(facts)
+    if examples:
+        user_content += "\n\nAllocation arithmetic examples (follow these rules):\n- " + "\n- ".join(examples)
     return [{"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": "Facts:\n" + json.dumps(facts)}]
+            {"role": "user", "content": user_content}]
 
 
 def _ask(client, model: str, messages: list) -> str:
@@ -119,7 +185,8 @@ def _ask(client, model: str, messages: list) -> str:
             # cannot time out while being written, and we can show progress.
             stream = client.chat.completions.create(
                 model=model, messages=messages, temperature=0.2, stream=True,
-                max_tokens=int(os.environ.get("NVIDIA_MAX_TOKENS", "8000")))
+                max_tokens=int(os.environ.get("NVIDIA_MAX_TOKENS", "8000")),
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}})
             break
         except Exception as e:
             busy = any(w in str(e).lower() for w in
@@ -228,25 +295,138 @@ def check_choices(facts: dict, out: dict) -> list:
     return problems
 
 
-def assemble(reference: dict, out: dict) -> dict:
-    """Full decision = code's figures + the model's choices for surplus weeks."""
+def _allocate_by_preference(amount: float, available: dict, candidates: list,
+                            score_order: list) -> dict:
+    """Fit a requested quantity to route capacities, preserving model order."""
+    preferred = {}
+    for candidate in candidates:
+        name = candidate["option"]
+        tonnes = candidate["tonnes"]
+        if name in available and isinstance(tonnes, (int, float)):
+            preferred[name] = preferred.get(name, 0.0) + max(float(tonnes), 0.0)
+    order = list(dict.fromkeys(
+        [candidate["option"] for candidate in candidates
+         if candidate["option"] in available] + score_order))
+    allocated = {name: 0.0 for name in available}
+    remaining = max(float(amount), 0.0)
+    for name in order:
+        take = min(preferred.get(name, 0.0), available[name], remaining)
+        allocated[name] += take
+        available[name] -= take
+        remaining -= take
+    for name in score_order:
+        take = min(available[name], remaining)
+        allocated[name] += take
+        available[name] -= take
+        remaining -= take
+        if remaining <= 1e-9:
+            break
+    return allocated
+
+
+def assemble(situation: dict, reference: dict, out: dict) -> dict:
+    """Apply model route preferences while code enforces quantities and storage."""
     chosen = {c["week"]: c for c in out["weeks"]}
+    capacities = {o["name"]: float(o["capacity_t_per_week"])
+                  for o in situation["options"]}
+    score_order = score_options(pd.DataFrame(situation["options"]))["name"].tolist()
+    storage = situation.get("storage")
+    storage_capacity = float(storage["capacity_t"]) if storage else 0.0
+    max_hold = int(storage["max_hold_weeks"]) if storage else 0
+    total_capacity = sum(capacities.values())
+    batches = []
+    release_reservations = {}
     weeks = []
-    for w in reference["weeks"]:
+    warnings = [str(x) for x in out.get("warnings", [])
+                if isinstance(out.get("warnings"), list)]
+    for index, w in enumerate(reference["weeks"]):
         new = copy.deepcopy(w)
-        if w["surplus_t"] > 0:
-            c = chosen[w["week"]]
-            new["allocations"] = [{"option": a["option"],
-                                   "tonnes": float(a["tonnes"])}
-                                  for a in c["allocations"]]
-            new["unallocated_t"] = float(c["unallocated_t"])
-            new["reasoning"] = c["reasoning"]
-        else:
-            new["reasoning"] = "No surplus this week."
+        c = chosen[w["week"]]
+        candidates = c["allocations"]
+        available = dict(capacities)
+
+        fresh_target = min(float(w["surplus_t"]), sum(available.values()))
+        fresh_alloc = _allocate_by_preference(
+            fresh_target, available, candidates, score_order)
+
+        requested_release = max(float(c.get("release_t", 0.0)), 0.0)
+        stored = sum(batch[1] for batch in batches)
+        release_target = min(requested_release, stored, sum(available.values()))
+        release_alloc = _allocate_by_preference(
+            release_target, available, candidates, score_order)
+        release = sum(release_alloc.values())
+        left_to_release = release
+        for batch in batches:
+            take = min(batch[1], left_to_release)
+            batch[1] -= take
+            left_to_release -= take
+        batches = [batch for batch in batches if batch[1] > 1e-9]
+
+        fresh_overflow = max(float(w["surplus_t"]) - fresh_target, 0.0)
+        remaining_storage = max(
+            storage_capacity - sum(batch[1] for batch in batches), 0.0)
+        future_slots = []
+        future_release = 0.0
+        for future in reference["weeks"][index + 1:]:
+            if future["week"] - w["week"] > max_hold:
+                continue
+            future_capacity = max(
+                total_capacity - min(float(future["surplus_t"]), total_capacity),
+                0.0)
+            requested = max(float(chosen[future["week"]].get("release_t", 0.0)), 0.0)
+            reservable = max(
+                min(requested, future_capacity)
+                - release_reservations.get(future["week"], 0.0),
+                0.0)
+            future_slots.append((future["week"], reservable))
+            future_release += reservable
+        store = min(max(float(c.get("store_t", 0.0)), 0.0),
+                    fresh_overflow, remaining_storage, future_release)
+        to_reserve = store
+        for future_week, reservable in future_slots:
+            reserved = min(reservable, to_reserve)
+            release_reservations[future_week] = (
+                release_reservations.get(future_week, 0.0) + reserved)
+            to_reserve -= reserved
+            if to_reserve <= 1e-9:
+                break
+        if store > 0:
+            batches.append([w["week"], store])
+
+        allocations = {name: fresh_alloc[name] + release_alloc[name]
+                       for name in capacities}
+        new["allocations"] = [{"option": name, "tonnes": tonnes}
+                              for name, tonnes in allocations.items()
+                              if tonnes > 1e-9]
+        new["unallocated_t"] = max(fresh_overflow - store, 0.0)
+        new["store_t"] = store
+        new["release_t"] = release
+        new["reasoning"] = c["reasoning"]
+        proposed_total = (sum(max(float(a["tonnes"]), 0.0) for a in candidates
+                              if isinstance(a.get("tonnes"), (int, float)))
+                          + max(float(c.get("store_t", 0.0)), 0.0)
+                          + max(float(c.get("unallocated_t", 0.0)), 0.0))
+        final_total = (sum(allocations.values()) + store + new["unallocated_t"])
+        proposed_allocations = {}
+        for allocation in candidates:
+            name, tonnes = allocation.get("option"), allocation.get("tonnes")
+            if name in capacities and isinstance(tonnes, (int, float)):
+                proposed_allocations[name] = (
+                    proposed_allocations.get(name, 0.0) + max(float(tonnes), 0.0))
+        routes_adjusted = any(
+            abs(proposed_allocations.get(name, 0.0) - tonnes) > 0.5
+            for name, tonnes in allocations.items())
+        if (routes_adjusted or abs(proposed_total - final_total) > 0.5
+                or abs(max(float(c.get("store_t", 0.0)), 0.0) - store) > 0.5
+                or abs(max(float(c.get("unallocated_t", 0.0)), 0.0)
+                       - new["unallocated_t"]) > 0.5
+                or abs(max(float(c.get("release_t", 0.0)), 0.0) - release) > 0.5):
+            warnings.append(
+                f"week {w['week']}: model quantities adjusted to respect supply, "
+                "route capacities, and storage limits")
         weeks.append(new)
-    warnings = out.get("warnings")
     return {"weeks": weeks,
-            "warnings": [str(x) for x in warnings] if isinstance(warnings, list) else []}
+            "warnings": warnings}
 
 
 def compare_to_reference(decision: dict, reference: dict) -> list:
@@ -286,7 +466,7 @@ def think(situation: dict, llm_fn=call_nvidia, max_tries: int = MAX_TRIES) -> di
             out = parse_json(raw)
             problems = check_choices(facts, out)
             if not problems:
-                decision = assemble(reference, out)
+                decision = assemble(situation, reference, out)
                 problems = validate_decision(situation, decision)
         except Exception as e:                  # bad JSON or wrong structure
             problems = [f"reply was not a valid decision: {e} (ended: "
@@ -398,13 +578,13 @@ if __name__ == "__main__":
     reference = reference_decision(situation)
     facts = compute_facts(situation, reference)
     json.dumps(facts)                               # must be JSON-friendly
-    assert [w["week"] for w in facts["decide_weeks"]] == [3, 4, 5, 6, 7]
+    assert [w["week"] for w in facts["decide_weeks"]] == list(range(12))
     surplus = {w["week"]: w["surplus_t"] for w in reference["weeks"]}
 
     good_choices = {"weeks": [
         {"week": w["week"], "allocations": w["allocations"],
          "unallocated_t": w["unallocated_t"], "reasoning": "test"}
-        for w in reference["weeks"] if w["surplus_t"] > 0], "warnings": []}
+        for w in reference["weeks"]], "warnings": []}
     good = json.dumps(good_choices)
 
     r = think(situation, llm_fn=lambda _m: "```json\n" + good + "\n```")
@@ -421,14 +601,13 @@ if __name__ == "__main__":
     assert r["source"] == "model" and any("week 3" in n for n in r["notes"])
 
     bad = json.loads(good)
-    bad["weeks"][0]["allocations"][0]["tonnes"] = 9999     # breaks capacity
-    calls = []
-    def flaky(messages):                       # wrong first, right second
-        calls.append(messages)
-        return json.dumps(bad) if len(calls) == 1 else good
-    r = think(situation, llm_fn=flaky)
-    assert r["source"] == "model" and r["tries"] == 2, "should retry once"
-    assert "over capacity" in calls[1][-1]["content"], "problems sent back"
+    bad_week = next(w for w in bad["weeks"] if w["week"] == 3)
+    bad_week["allocations"][0]["tonnes"] = 9999             # breaks capacity
+    r = think(situation, llm_fn=lambda _m: json.dumps(bad))
+    assert r["source"] == "model" and r["tries"] == 1
+    assert any("quantities adjusted" in warning
+               for warning in r["decision"]["warnings"])
+    assert validate_decision(situation, r["decision"]) == []
 
     partial = json.loads(good)
     partial["weeks"].pop()                     # forgot a week
@@ -439,7 +618,10 @@ if __name__ == "__main__":
     for w in lazy["weeks"]:
         w["allocations"], w["unallocated_t"] = [], surplus[w["week"]]
     r = think(situation, llm_fn=lambda _m: json.dumps(lazy), max_tries=1)
-    assert r["source"] == "reference" and "left unplaced" in r["log"][0]
+    assert r["source"] == "model"
+    assert any("quantities adjusted" in warning
+               for warning in r["decision"]["warnings"])
+    assert validate_decision(situation, r["decision"]) == []
 
     r = think(situation, llm_fn=lambda _m: "Sorry, I cannot help with that.")
     assert r["source"] == "reference" and r["tries"] == 3, "fallback after 3"

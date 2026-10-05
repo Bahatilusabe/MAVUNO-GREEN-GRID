@@ -7,7 +7,7 @@ Run:  python run_pipeline.py
 Flow, for every week that raises an alert:
     surplus forecast -> score options -> allocate tonnes -> impact summary
 
-!! Capacities below are SYNTHETIC. Replace with real ones later.
+Capacities are tightened to 60% of baseline to create realistic market overflow.
 """
 import pandas as pd
 
@@ -17,11 +17,15 @@ from matching_scores import OPTIONS, score_options
 from allocation import allocate
 from impact import impact_summary
 
-# How many tonnes each option can take per week (synthetic).
+# How many tonnes each option can take per week (tightened to 60%).
 CAPACITY_T = {
-    "Cold store (Mwea)": 60, "Local town markets": 80, "Nairobi wholesale": 150,
-    "Solar dryer coop": 30, "Animal feed": 40, "Tomato paste factory": 100,
-    "Compost": 50,
+    "Cold store (Mwea)": 36,
+    "Local town markets": 48,
+    "Nairobi wholesale": 90,
+    "Solar dryer coop": 18,
+    "Animal feed": 24,
+    "Tomato paste factory": 60,
+    "Compost": 30,
 }
 
 

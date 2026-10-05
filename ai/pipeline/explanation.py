@@ -134,8 +134,9 @@ if __name__ == "__main__":
 
     # --- tiny self-checks (use fake models, so no key or internet needed) ---
     f = build_facts(row)
-    good = "Week 4 has 516 t with no buyer, risk 0.75, and 510 t can be saved."
-    bad = "Week 4 has 999 t with no buyer."
+    good = (f"Week {f['week']} has {f['surplus_t']} t with no buyer, risk "
+            f"{f['risk']}, and {f['saved_t']} t can be saved.")
+    bad = f"Week {f['week']} has 9999 t with no buyer."
     assert numbers_are_grounded(template_text(f), f), "template must be grounded"
     assert numbers_are_grounded(good, f)
     assert not numbers_are_grounded(bad, f)

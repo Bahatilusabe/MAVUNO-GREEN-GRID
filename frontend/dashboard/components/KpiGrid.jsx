@@ -1,13 +1,20 @@
-import { Ruler, Scale, Tractor, TriangleAlert } from "lucide-react";
+import { CircleDollarSign, Leaf, Recycle, Ruler, Scale, Tractor, TriangleAlert } from "lucide-react";
 import { cls } from "../../shared/utils";
 
-export default function KpiGrid({ totals, onNavigate }) {
+export default function KpiGrid({ totals, globalImpact, onNavigate }) {
   const kpis = [
     [Tractor, "Total farms", totals.farms, "farms"],
     [Ruler, "Total area", `${totals.area} ha`, "farms"],
     [Scale, "Expected harvest", `${totals.tons} t`, "crops"],
     [TriangleAlert, "High risk crops", totals.high, "recs", totals.high > 0],
   ];
+  const impactKpis = globalImpact ? [
+    [Scale, "Food saved", `${Number(globalImpact.tonnes_saved ?? 0).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t`],
+    [Recycle, "Food at risk", `${Number(globalImpact.tonnes_wasted ?? 0).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t`],
+    [CircleDollarSign, "Net value", `KES ${(Number(globalImpact.net_value_kes ?? globalImpact.revenue_kes ?? 0) / 1e6).toLocaleString("en-KE", { maximumFractionDigits: 1 })}M`],
+    [Leaf, "CO2e avoided", `${Number(globalImpact.co2e_avoided_t ?? 0).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t`],
+  ] : [];
+
   return (
     <div className="db-kpis">
       {kpis.map(([Icon, label, value, to, danger]) => (
@@ -24,6 +31,17 @@ export default function KpiGrid({ totals, onNavigate }) {
             <strong>{value}</strong>
           </div>
         </button>
+      ))}
+      {impactKpis.map(([Icon, label, value]) => (
+        <div key={label} className="db-card db-kpi">
+          <span className="db-ico">
+            <Icon aria-hidden="true" size={20} />
+          </span>
+          <div>
+            <small>{label}</small>
+            <strong>{value}</strong>
+          </div>
+        </div>
       ))}
     </div>
   );
