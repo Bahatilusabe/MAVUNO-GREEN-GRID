@@ -82,7 +82,7 @@ export const PROMPTS = [
 
 export async function fetchSurplusAlerts() {
   try {
-    const response = await fetch("/api/v1/surplus-alerts");
+    const response = await fetch("http://localhost:8001/api/v1/surplus-alerts");
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }
