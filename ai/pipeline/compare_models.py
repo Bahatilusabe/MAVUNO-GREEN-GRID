@@ -7,9 +7,9 @@ For each model it runs brain.think() once (up to 2 attempts) and reports:
   source : 'model' = its answer passed every check, 'reference' = it failed
   tries  : attempts needed (1 is best)
   secs   : total time
-  notes  : places it disagreed with the plain math (fewer = closer to the math,
-           but a note is not automatically a mistake: read them)
-  saved_t / revenue / co2e : the outcome of ITS allocations (computed by code)
+  notes  : weeks where it moved tonnes away from the score-ranked baseline (a note
+           is not automatically a mistake: read them)
+    saved_t / net_value / co2e : the outcome of ITS allocations (computed by code)
 
 This uses your NVIDIA credits (a handful of calls per model).
 Models that are busy or retired simply show as 'reference' with the reason.
@@ -48,7 +48,7 @@ def run_candidates(models: list, situation: dict, llm_fn=None) -> list:
         rows.append({
             "model": model, "source": r["source"], "tries": r["tries"],
             "secs": time.time() - start, "notes": len(r["notes"]),
-            "saved_t": s["tonnes_saved"], "revenue": s["revenue_kes"],
+            "saved_t": s["tonnes_saved"], "net_val": s["net_value_kes"],
             "co2e": s["co2e_avoided_t"], "log": r["log"], "note_list": r["notes"],
         })
     return rows
@@ -57,22 +57,22 @@ def run_candidates(models: list, situation: dict, llm_fn=None) -> list:
 def print_table(rows: list, reference: dict) -> None:
     r = reference["summary"]
     head = (f"{'model':42s} {'source':9s} {'tries':>5s} {'secs':>6s} "
-            f"{'notes':>5s} {'saved_t':>8s} {'revenue_M':>9s} {'co2e_t':>7s}")
+            f"{'notes':>5s} {'saved_t':>8s} {'net_val_M':>9s} {'co2e_t':>7s}")
     print("\n" + head + "\n" + "-" * len(head))
     print(f"{'(plain math reference)':42s} {'-':9s} {'-':>5s} {'-':>6s} {'-':>5s} "
-          f"{r['tonnes_saved']:8.0f} {r['revenue_kes'] / 1e6:9.1f} "
+            f"{r['tonnes_saved']:8.0f} {r['net_value_kes'] / 1e6:9.1f} "
           f"{r['co2e_avoided_t']:7.0f}")
     for x in rows:
         print(f"{x['model']:42s} {x['source']:9s} {x['tries']:5d} "
               f"{x['secs']:6.0f} {x['notes']:5d} {x['saved_t']:8.0f} "
-              f"{x['revenue'] / 1e6:9.1f} {x['co2e']:7.0f}")
+              f"{x['net_val'] / 1e6:9.1f} {x['co2e']:7.0f}")
     print("\nWhy a model fell back to the reference (if it did):")
     for x in rows:
         if x["source"] == "reference":
             print(f"  {x['model']}:")
             for line in x["log"][:-1]:          # last line is just 'using reference'
                 print("    -", line[:230])
-    print("\nFirst few disagreements with the math, per accepted model:")
+    print("\nFirst few departures from the baseline, per accepted model:")
     for x in rows:
         if x["source"] == "model" and x["note_list"]:
             print(f"  {x['model']}:")
