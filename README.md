@@ -6,12 +6,6 @@ MAVUNO Green Grid is a prototype agricultural platform with a React frontend and
 
 Requirements: Node.js and npm.
 
-```powershell
-cd frontend
-npm ci
-npm run dev
-```
-
 The Vite server prints the local URL. The app uses hash routes: `#/dashboard`, `#/farmer`, `#/admin`, and `#/partner`. Farmer subviews are available under `#/farmer/<view>`.
 
 Useful frontend checks, from `frontend/`:
@@ -48,10 +42,33 @@ MAVUNO-GREEN-GRID
 │  ├─ optimization
 │  │  ├─ optimizer.py
 │  │  └─ README.md
+│  ├─ pipeline
+│  │  ├─ allocation.py
+│  │  ├─ brain.py
+│  │  ├─ brain_schema.py
+│  │  ├─ check_nvidia.py
+│  │  ├─ compare_models.py
+│  │  ├─ explanation.py
+│  │  ├─ impact.py
+│  │  ├─ list_models.py
+│  │  ├─ matching_scores.py
+│  │  ├─ run_pipeline.py
+│  │  ├─ surplus_forecast.py
+│  │  └─ __pycache__
+│  │     ├─ allocation.cpython-314.pyc
+│  │     ├─ brain.cpython-314.pyc
+│  │     ├─ brain_schema.cpython-314.pyc
+│  │     ├─ explanation.cpython-314.pyc
+│  │     ├─ impact.cpython-314.pyc
+│  │     ├─ matching_scores.cpython-314.pyc
+│  │     ├─ run_pipeline.cpython-314.pyc
+│  │     └─ surplus_forecast.cpython-314.pyc
 │  └─ risk
 │     ├─ README.md
 │     └─ risk_assessor.py
 ├─ backend
+│  ├─ .env
+│  ├─ .env.example
 │  ├─ api
 │  │  ├─ README.md
 │  │  └─ routes.py
@@ -61,6 +78,7 @@ MAVUNO-GREEN-GRID
 │  ├─ crops
 │  │  ├─ crop_service.py
 │  │  └─ README.md
+│  ├─ docker-compose.yml
 │  ├─ farms
 │  │  ├─ farm_service.py
 │  │  └─ README.md
@@ -82,9 +100,39 @@ MAVUNO-GREEN-GRID
 │  ├─ notifications
 │  │  ├─ notification_service.py
 │  │  └─ README.md
+│  ├─ package-lock.json
+│  ├─ package.json
 │  ├─ resources
 │  │  ├─ README.md
 │  │  └─ resource_service.py
+│  ├─ src
+│  │  ├─ app.js
+│  │  ├─ config.js
+│  │  ├─ db
+│  │  │  ├─ migrate.js
+│  │  │  ├─ migrations
+│  │  │  │  ├─ 001_init.sql
+│  │  │  │  ├─ middleware
+│  │  │  │  │  ├─ auth.js
+│  │  │  │  │  ├─ error.js
+│  │  │  │  │  └─ validate.js
+│  │  │  │  └─ utils
+│  │  │  │     └─ errors.js
+│  │  │  ├─ pool.js
+│  │  │  └─ seed.js
+│  │  ├─ modules
+│  │  │  ├─ auth
+│  │  │  │  ├─ routes.js
+│  │  │  │  ├─ schemas.js
+│  │  │  │  └─ service.js
+│  │  │  └─ farms
+│  │  │     ├─ routes.js
+│  │  │     ├─ schemas.js
+│  │  │     └─ service.js
+│  │  ├─ pool.js
+│  │  ├─ server.js
+│  │  └─ utils
+│  │     └─ errors.js
 │  └─ storage
 │     ├─ README.md
 │     └─ storage_manager.py
@@ -128,7 +176,6 @@ MAVUNO-GREEN-GRID
 ├─ frontend
 │  ├─ .oxlintrc.json
 │  ├─ admin
-│  │  ├─ AdminDashboard.css
 │  │  ├─ AdminDashboard.jsx
 │  │  ├─ components
 │  │  │  ├─ AlertsCard.jsx
@@ -150,40 +197,35 @@ MAVUNO-GREEN-GRID
 │  │  │  ├─ PricesCard.jsx
 │  │  │  ├─ RecsCard.jsx
 │  │  │  └─ WeatherCard.jsx
-│  │  ├─ Dashboard.css
 │  │  ├─ Dashboard.jsx
 │  │  ├─ data.js
 │  │  └─ README.md
 │  ├─ dist
 │  │  ├─ assets
-│  │  │  ├─ AdminDashboard-9e8Xs8M9.css
-│  │  │  ├─ AdminDashboard-CVdh4BcI.js
-│  │  │  ├─ charts-CoATrGSQ.js
-│  │  │  ├─ Dashboard-DmI8Wowt.css
-│  │  │  ├─ Dashboard-lhrPfkPB.js
-│  │  │  ├─ FarmerPortal-DqQ6bg7H.js
-│  │  │  ├─ FarmerPortal-ZGV9b2mi.css
+│  │  │  ├─ AdminDashboard-BbAAEN6P.js
+│  │  │  ├─ Assistant-B8jNffVY.js
+│  │  │  ├─ charts-CBBI-Ads.js
+│  │  │  ├─ Dashboard-Bw-0TDE0.js
+│  │  │  ├─ FarmerPortal-CYBkQHlO.js
 │  │  │  ├─ geist-cyrillic-ext-wght-normal-DjL33-gN.woff2
 │  │  │  ├─ geist-cyrillic-wght-normal-BEAKL7Jp.woff2
 │  │  │  ├─ geist-latin-ext-wght-normal-DC-KSUi6.woff2
 │  │  │  ├─ geist-latin-wght-normal-BgDaEnEv.woff2
 │  │  │  ├─ geist-vietnamese-wght-normal-6IgcOCM7.woff2
-│  │  │  ├─ index-DJkuCj_B.js
-│  │  │  ├─ index-pE6sOGY5.css
-│  │  │  ├─ leaf-C5apnwhy.js
-│  │  │  ├─ PartnerPortal-BpnB5bL4.css
-│  │  │  ├─ PartnerPortal-O2752bcr.js
-│  │  │  ├─ scale-njWAIpxY.js
-│  │  │  ├─ x-BB-2X2BA.js
-│  │  │  └─ x-DDMUqdKB.css
+│  │  │  ├─ index-Cim8bZbt.css
+│  │  │  ├─ index-C_8KvbLx.js
+│  │  │  ├─ leaf-9KuagMQM.js
+│  │  │  ├─ PartnerPortal-DgDS-EKm.js
+│  │  │  ├─ recycle-B4KQj1sD.js
+│  │  │  └─ triangle-alert-DG-dIYod.js
 │  │  ├─ favicon.svg
 │  │  ├─ icons.svg
 │  │  └─ index.html
 │  ├─ farmer
 │  │  ├─ components
+│  │  │  ├─ page-parts.jsx
 │  │  │  └─ ui.jsx
 │  │  ├─ constants.js
-│  │  ├─ FarmerPortal.css
 │  │  ├─ FarmerPortal.jsx
 │  │  ├─ README.md
 │  │  └─ views
@@ -191,8 +233,19 @@ MAVUNO-GREEN-GRID
 │  │     ├─ Crops.jsx
 │  │     ├─ FarmDetails.jsx
 │  │     ├─ Forecast.jsx
+│  │     ├─ impact
+│  │     │  ├─ data.js
+│  │     │  ├─ Interventions.jsx
+│  │     │  ├─ Recovery.jsx
+│  │     │  ├─ Reports.jsx
+│  │     │  ├─ Sources.jsx
+│  │     │  └─ Trend.jsx
 │  │     ├─ Impact.jsx
 │  │     ├─ Market.jsx
+│  │     ├─ messages
+│  │     │  ├─ data.js
+│  │     │  └─ NotificationItem.jsx
+│  │     ├─ Messages.jsx
 │  │     ├─ MyFarms.jsx
 │  │     ├─ Opportunities.jsx
 │  │     ├─ overview
@@ -204,10 +257,25 @@ MAVUNO-GREEN-GRID
 │  │     │  ├─ RiskWatch.jsx
 │  │     │  ├─ StatCards.jsx
 │  │     │  └─ TodayRecs.jsx
-│  │     ├─ Overview.css
 │  │     ├─ Overview.jsx
 │  │     ├─ Profile.jsx
-│  │     └─ Recommendations.jsx
+│  │     ├─ Recommendations.jsx
+│  │     ├─ storage
+│  │     │  ├─ CapacityTimeline.jsx
+│  │     │  ├─ data.js
+│  │     │  ├─ FacilitiesTable.jsx
+│  │     │  ├─ MapCard.jsx
+│  │     │  ├─ RecommendedCard.jsx
+│  │     │  └─ Reservations.jsx
+│  │     ├─ Storage.jsx
+│  │     ├─ transport
+│  │     │  ├─ data.js
+│  │     │  ├─ Deliveries.jsx
+│  │     │  ├─ MapCard.jsx
+│  │     │  ├─ PlanCard.jsx
+│  │     │  ├─ QuickActions.jsx
+│  │     │  └─ RequestsTable.jsx
+│  │     └─ Transport.jsx
 │  ├─ index.html
 │  ├─ jsconfig.json
 │  ├─ package-lock.json
@@ -221,7 +289,6 @@ MAVUNO-GREEN-GRID
 │  │  │  ├─ RequestsTab.jsx
 │  │  │  └─ VolumeCard.jsx
 │  │  ├─ data.js
-│  │  ├─ PartnerPortal.css
 │  │  ├─ PartnerPortal.jsx
 │  │  ├─ README.md
 │  │  └─ usePartnerStats.js
@@ -230,13 +297,16 @@ MAVUNO-GREEN-GRID
 │  │  └─ icons.svg
 │  ├─ README.md
 │  ├─ shared
-│  │  ├─ Assistant.css
 │  │  ├─ Assistant.jsx
+│  │  ├─ chartColors.js
 │  │  ├─ charts.jsx
 │  │  ├─ data.js
+│  │  ├─ EmptyState.jsx
+│  │  ├─ nav.js
+│  │  ├─ Shell.jsx
+│  │  ├─ Skeleton.jsx
 │  │  └─ utils.js
 │  ├─ src
-│  │  ├─ App.css
 │  │  ├─ App.jsx
 │  │  ├─ assets
 │  │  │  ├─ hero.png
@@ -248,7 +318,17 @@ MAVUNO-GREEN-GRID
 │  │  ├─ index.css
 │  │  ├─ lib
 │  │  │  └─ utils.js
-│  │  └─ main.jsx
+│  │  ├─ main.jsx
+│  │  └─ styles
+│  │     ├─ admin.css
+│  │     ├─ app.css
+│  │     ├─ assistant.css
+│  │     ├─ dashboard.css
+│  │     ├─ farmer.css
+│  │     ├─ overview.css
+│  │     ├─ pages.css
+│  │     ├─ partner.css
+│  │     └─ shell.css
 │  └─ vite.config.js
 ├─ integrations
 │  ├─ maps
@@ -265,13 +345,15 @@ MAVUNO-GREEN-GRID
 │     └─ weather_service.py
 ├─ LICENSE
 ├─ README.md
+├─ src
+│  └─ styles
 └─ tests
    ├─ README.md
    └─ test_farm_service.py
 ```
 
 ```
-MAVUNO-PROJECT
+MAVUNO-GREEN-GRID
 ├─ ai
 │  ├─ explanations
 │  │  ├─ explainer.py
@@ -285,10 +367,33 @@ MAVUNO-PROJECT
 │  ├─ optimization
 │  │  ├─ optimizer.py
 │  │  └─ README.md
+│  ├─ pipeline
+│  │  ├─ allocation.py
+│  │  ├─ brain.py
+│  │  ├─ brain_schema.py
+│  │  ├─ check_nvidia.py
+│  │  ├─ compare_models.py
+│  │  ├─ explanation.py
+│  │  ├─ impact.py
+│  │  ├─ list_models.py
+│  │  ├─ matching_scores.py
+│  │  ├─ run_pipeline.py
+│  │  ├─ surplus_forecast.py
+│  │  └─ __pycache__
+│  │     ├─ allocation.cpython-314.pyc
+│  │     ├─ brain.cpython-314.pyc
+│  │     ├─ brain_schema.cpython-314.pyc
+│  │     ├─ explanation.cpython-314.pyc
+│  │     ├─ impact.cpython-314.pyc
+│  │     ├─ matching_scores.cpython-314.pyc
+│  │     ├─ run_pipeline.cpython-314.pyc
+│  │     └─ surplus_forecast.cpython-314.pyc
 │  └─ risk
 │     ├─ README.md
 │     └─ risk_assessor.py
 ├─ backend
+│  ├─ .env
+│  ├─ .env.example
 │  ├─ api
 │  │  ├─ README.md
 │  │  └─ routes.py
@@ -298,6 +403,7 @@ MAVUNO-PROJECT
 │  ├─ crops
 │  │  ├─ crop_service.py
 │  │  └─ README.md
+│  ├─ docker-compose.yml
 │  ├─ farms
 │  │  ├─ farm_service.py
 │  │  └─ README.md
@@ -319,9 +425,39 @@ MAVUNO-PROJECT
 │  ├─ notifications
 │  │  ├─ notification_service.py
 │  │  └─ README.md
+│  ├─ package-lock.json
+│  ├─ package.json
 │  ├─ resources
 │  │  ├─ README.md
 │  │  └─ resource_service.py
+│  ├─ src
+│  │  ├─ app.js
+│  │  ├─ config.js
+│  │  ├─ db
+│  │  │  ├─ migrate.js
+│  │  │  ├─ migrations
+│  │  │  │  ├─ 001_init.sql
+│  │  │  │  ├─ middleware
+│  │  │  │  │  ├─ auth.js
+│  │  │  │  │  ├─ error.js
+│  │  │  │  │  └─ validate.js
+│  │  │  │  └─ utils
+│  │  │  │     └─ errors.js
+│  │  │  ├─ pool.js
+│  │  │  └─ seed.js
+│  │  ├─ modules
+│  │  │  ├─ auth
+│  │  │  │  ├─ routes.js
+│  │  │  │  ├─ schemas.js
+│  │  │  │  └─ service.js
+│  │  │  └─ farms
+│  │  │     ├─ routes.js
+│  │  │     ├─ schemas.js
+│  │  │     └─ service.js
+│  │  ├─ pool.js
+│  │  ├─ server.js
+│  │  └─ utils
+│  │     └─ errors.js
 │  └─ storage
 │     ├─ README.md
 │     └─ storage_manager.py
@@ -365,7 +501,6 @@ MAVUNO-PROJECT
 ├─ frontend
 │  ├─ .oxlintrc.json
 │  ├─ admin
-│  │  ├─ AdminDashboard.css
 │  │  ├─ AdminDashboard.jsx
 │  │  ├─ components
 │  │  │  ├─ AlertsCard.jsx
@@ -387,15 +522,35 @@ MAVUNO-PROJECT
 │  │  │  ├─ PricesCard.jsx
 │  │  │  ├─ RecsCard.jsx
 │  │  │  └─ WeatherCard.jsx
-│  │  ├─ Dashboard.css
 │  │  ├─ Dashboard.jsx
 │  │  ├─ data.js
 │  │  └─ README.md
+│  ├─ dist
+│  │  ├─ assets
+│  │  │  ├─ AdminDashboard-BbAAEN6P.js
+│  │  │  ├─ Assistant-B8jNffVY.js
+│  │  │  ├─ charts-CBBI-Ads.js
+│  │  │  ├─ Dashboard-Bw-0TDE0.js
+│  │  │  ├─ FarmerPortal-CYBkQHlO.js
+│  │  │  ├─ geist-cyrillic-ext-wght-normal-DjL33-gN.woff2
+│  │  │  ├─ geist-cyrillic-wght-normal-BEAKL7Jp.woff2
+│  │  │  ├─ geist-latin-ext-wght-normal-DC-KSUi6.woff2
+│  │  │  ├─ geist-latin-wght-normal-BgDaEnEv.woff2
+│  │  │  ├─ geist-vietnamese-wght-normal-6IgcOCM7.woff2
+│  │  │  ├─ index-Cim8bZbt.css
+│  │  │  ├─ index-C_8KvbLx.js
+│  │  │  ├─ leaf-9KuagMQM.js
+│  │  │  ├─ PartnerPortal-DgDS-EKm.js
+│  │  │  ├─ recycle-B4KQj1sD.js
+│  │  │  └─ triangle-alert-DG-dIYod.js
+│  │  ├─ favicon.svg
+│  │  ├─ icons.svg
+│  │  └─ index.html
 │  ├─ farmer
 │  │  ├─ components
+│  │  │  ├─ page-parts.jsx
 │  │  │  └─ ui.jsx
 │  │  ├─ constants.js
-│  │  ├─ FarmerPortal.css
 │  │  ├─ FarmerPortal.jsx
 │  │  ├─ README.md
 │  │  └─ views
@@ -403,13 +558,49 @@ MAVUNO-PROJECT
 │  │     ├─ Crops.jsx
 │  │     ├─ FarmDetails.jsx
 │  │     ├─ Forecast.jsx
+│  │     ├─ impact
+│  │     │  ├─ data.js
+│  │     │  ├─ Interventions.jsx
+│  │     │  ├─ Recovery.jsx
+│  │     │  ├─ Reports.jsx
+│  │     │  ├─ Sources.jsx
+│  │     │  └─ Trend.jsx
 │  │     ├─ Impact.jsx
 │  │     ├─ Market.jsx
+│  │     ├─ messages
+│  │     │  ├─ data.js
+│  │     │  └─ NotificationItem.jsx
+│  │     ├─ Messages.jsx
 │  │     ├─ MyFarms.jsx
 │  │     ├─ Opportunities.jsx
+│  │     ├─ overview
+│  │     │  ├─ data.js
+│  │     │  ├─ EnvImpact.jsx
+│  │     │  ├─ FarmsTable.jsx
+│  │     │  ├─ GridActivity.jsx
+│  │     │  ├─ HarvestOutlook.jsx
+│  │     │  ├─ RiskWatch.jsx
+│  │     │  ├─ StatCards.jsx
+│  │     │  └─ TodayRecs.jsx
 │  │     ├─ Overview.jsx
 │  │     ├─ Profile.jsx
-│  │     └─ Recommendations.jsx
+│  │     ├─ Recommendations.jsx
+│  │     ├─ storage
+│  │     │  ├─ CapacityTimeline.jsx
+│  │     │  ├─ data.js
+│  │     │  ├─ FacilitiesTable.jsx
+│  │     │  ├─ MapCard.jsx
+│  │     │  ├─ RecommendedCard.jsx
+│  │     │  └─ Reservations.jsx
+│  │     ├─ Storage.jsx
+│  │     ├─ transport
+│  │     │  ├─ data.js
+│  │     │  ├─ Deliveries.jsx
+│  │     │  ├─ MapCard.jsx
+│  │     │  ├─ PlanCard.jsx
+│  │     │  ├─ QuickActions.jsx
+│  │     │  └─ RequestsTable.jsx
+│  │     └─ Transport.jsx
 │  ├─ index.html
 │  ├─ jsconfig.json
 │  ├─ package-lock.json
@@ -423,7 +614,6 @@ MAVUNO-PROJECT
 │  │  │  ├─ RequestsTab.jsx
 │  │  │  └─ VolumeCard.jsx
 │  │  ├─ data.js
-│  │  ├─ PartnerPortal.css
 │  │  ├─ PartnerPortal.jsx
 │  │  ├─ README.md
 │  │  └─ usePartnerStats.js
@@ -432,13 +622,16 @@ MAVUNO-PROJECT
 │  │  └─ icons.svg
 │  ├─ README.md
 │  ├─ shared
-│  │  ├─ Assistant.css
 │  │  ├─ Assistant.jsx
+│  │  ├─ chartColors.js
 │  │  ├─ charts.jsx
 │  │  ├─ data.js
+│  │  ├─ EmptyState.jsx
+│  │  ├─ nav.js
+│  │  ├─ Shell.jsx
+│  │  ├─ Skeleton.jsx
 │  │  └─ utils.js
 │  ├─ src
-│  │  ├─ App.css
 │  │  ├─ App.jsx
 │  │  ├─ assets
 │  │  │  ├─ hero.png
@@ -450,7 +643,17 @@ MAVUNO-PROJECT
 │  │  ├─ index.css
 │  │  ├─ lib
 │  │  │  └─ utils.js
-│  │  └─ main.jsx
+│  │  ├─ main.jsx
+│  │  └─ styles
+│  │     ├─ admin.css
+│  │     ├─ app.css
+│  │     ├─ assistant.css
+│  │     ├─ dashboard.css
+│  │     ├─ farmer.css
+│  │     ├─ overview.css
+│  │     ├─ pages.css
+│  │     ├─ partner.css
+│  │     └─ shell.css
 │  └─ vite.config.js
 ├─ integrations
 │  ├─ maps
@@ -467,6 +670,8 @@ MAVUNO-PROJECT
 │     └─ weather_service.py
 ├─ LICENSE
 ├─ README.md
+├─ src
+│  └─ styles
 └─ tests
    ├─ README.md
    └─ test_farm_service.py
