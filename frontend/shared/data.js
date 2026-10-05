@@ -92,3 +92,17 @@ export async function fetchSurplusAlerts() {
     return null;
   }
 }
+
+export async function fetchOpportunities() {
+  try {
+    const response = await fetch("/api/v1/opportunities");
+    if (!response.ok) {
+      throw new Error(`Backend returned HTTP ${response.status}`);
+    }
+    const json = await response.json();
+    return json.status === "success" && Array.isArray(json.data) ? json.data : [];
+  } catch (error) {
+    console.error("Failed to fetch opportunities from backend:", error);
+    return [];
+  }
+}

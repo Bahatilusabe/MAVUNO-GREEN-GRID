@@ -1,20 +1,56 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-import { OPPS, OPP_COLOR } from "../../shared/data";
+import { fetchOpportunities, OPPS, OPP_COLOR } from "../../shared/data";
 import { cls } from "../../shared/utils";
 import { Tabs, FakeMap } from "../components/ui";
+
+const TYPE_LABELS = {
+  buyer: "Buyers",
+  processor: "Processors",
+  cold_store: "Storage",
+  recovery: "Recovery",
+};
+
+const colorForType = (type) => OPP_COLOR[
+  { Buyers: "Buyer", Processors: "Processor" }[type] || type
+] || "#278451";
 
 export default function Opportunities() {
   const [filter, setFilter] = useState("All");
   const [matched, setMatched] = useState({});
-  const list = OPPS.filter(
-    (o) => filter === "All" || o.type + "s" === filter || o.type === filter,
+  const [backendOpportunities, setBackendOpportunities] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchOpportunities().then((data) => {
+      if (active) setBackendOpportunities(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const opportunities = backendOpportunities === null
+    ? OPPS
+    : backendOpportunities.map((item, index) => ({
+      id: `backend-${item.name}`,
+      name: item.name,
+      type: TYPE_LABELS[item.type] || item.type,
+      km: Number(item.distance_km),
+      cap: `${Number(item.capacity_t).toLocaleString("en-KE")} t/week`,
+      price: `KES ${Number(item.price_kes_kg).toLocaleString("en-KE")}/kg`,
+      note: `${item.lead_days} day lead time`,
+      x: 12 + (index % 4) * 24,
+      y: 18 + Math.floor(index / 4) * 28,
+    }));
+  const list = opportunities.filter(
+    (opportunity) => filter === "All" || opportunity.type === filter,
   );
   const pins = list.map((o) => ({
     x: o.x,
     y: o.y,
-    color: OPP_COLOR[o.type],
+    color: colorForType(o.type),
     label: o.name,
   }));
 
@@ -22,7 +58,7 @@ export default function Opportunities() {
     <>
       <h3>Nearby Opportunities for Tomatoes</h3>
       <Tabs
-        tabs={["All", "Buyers", "Processors", "Storage", "Transport"]}
+        tabs={["All", "Buyers", "Processors", "Storage", "Recovery", "Transport"]}
         active={filter}
         onChange={setFilter}
       />
@@ -30,7 +66,7 @@ export default function Opportunities() {
         <div>
           {list.map((o) => (
             <div key={o.id} className="card opp">
-              <span className="row-icon" style={{ color: OPP_COLOR[o.type] }}>
+              <span className="row-icon" style={{ color: colorForType(o.type) }}>
                 ●
               </span>
               <div className="grow">
