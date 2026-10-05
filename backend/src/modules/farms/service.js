@@ -29,7 +29,7 @@ export async function listFarms(user) {
   if (farms.length === 0) return [];
 
   const farmIds = farms.map(f => f.ID || f.id);
-  const placeholders = farmIds.map((_, i) => `:id${i + 1}`).join(', ');
+  const placeholders = farmIds.map((_, i) => `:${i + 1}`).join(", ");
   
   const cropsRes = await query(
     `SELECT id AS "id", farm_id AS "farmId", name AS "name", stage AS "stage", 

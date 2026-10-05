@@ -15,6 +15,8 @@ load_dotenv()
 from brain import call_nvidia, think
 from brain_schema import build_situation
 from explanation import explain_alert
+from matching_scores import OPTIONS
+from run_pipeline import CAPACITY_T
 
 app = FastAPI(title="MAVUNO-X AI API")
 app.add_middleware(
@@ -63,6 +65,24 @@ def chat_endpoint(query: ChatQuery):
                 "Please check your surplus risk watch and local storage options."
             ),
         }
+
+
+@app.get("/api/v1/opportunities")
+def get_opportunities():
+    """Return active routes with their current capacities and matching data."""
+    opportunities = []
+    for _, row in OPTIONS.iterrows():
+        name = row["name"]
+        opportunities.append({
+            "name": name,
+            "type": row["type"],
+            "price_kes_kg": float(row["price_kes_kg"]),
+            "distance_km": float(row["distance_km"]),
+            "lead_days": int(row["lead_days"]),
+            "capacity_t": CAPACITY_T.get(name, 50),
+            "co2e_per_t": float(row["co2e_per_t"]),
+        })
+    return {"status": "success", "data": opportunities}
 
 
 @app.get("/api/v1/surplus-alerts")

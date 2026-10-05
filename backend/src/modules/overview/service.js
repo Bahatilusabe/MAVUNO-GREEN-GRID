@@ -1,7 +1,7 @@
 import { query } from "../../db/pool.js";
 
-// placeholder until the AI surplus forecast supplies real exposure per crop
-const EXPOSED_SHARE = 0.8;
+const AI_SURPLUS_URL = process.env.AI_SURPLUS_URL
+  || "http://localhost:8000/api/v1/surplus-alerts";
 
 export async function getOverview(userId) {
   const [farmsRes, cropsRes] = await Promise.all([
@@ -23,20 +23,63 @@ export async function getOverview(userId) {
 
   const crops = cropsRes.rows;
   const high = crops.filter((c) => c.risk === "high");
-  const exposed = (c) => Math.round(c.expectedKg * EXPOSED_SHARE);
   const top = [...high].sort((a, b) => b.expectedKg - a.expectedKg)[0];
+
+  let aiAlerts = [];
+  let globalImpact = null;
+  try {
+    const aiResponse = await fetch(AI_SURPLUS_URL, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!aiResponse.ok) {
+      throw new Error(`AI backend returned HTTP ${aiResponse.status}`);
+    }
+    const aiJson = await aiResponse.json();
+    if (aiJson?.status === "success") {
+      aiAlerts = Array.isArray(aiJson.data) ? aiJson.data : [];
+      globalImpact = aiJson.global_impact ?? null;
+    }
+  } catch (error) {
+    console.error(
+      "Warning: Could not connect to Python AI backend from Express service:",
+      error.message,
+    );
+  }
+
+  const atRiskKg = aiAlerts.length > 0
+    ? Math.round(aiAlerts.reduce(
+      (sum, alert) => sum + Number(alert.surplus_t || 0) * 1000 * Number(alert.risk || 0),
+      0,
+    ))
+    : high.reduce((sum, crop) => sum + crop.expectedKg, 0);
+  const alertSurplusKg = aiAlerts.reduce(
+    (sum, alert) => sum + Number(alert.surplus_t || 0) * 1000,
+    0,
+  );
+  const surplusWeightedRisk = alertSurplusKg > 0
+    ? atRiskKg / alertSurplusKg
+    : null;
 
   return {
     stats: {
       farms: farmsRes.rows[0].farms,
       areaHa: farmsRes.rows[0].areaHa,
       expectedKg: crops.reduce((s, c) => s + c.expectedKg, 0),
-      atRiskKg: high.reduce((s, c) => s + exposed(c), 0),
+      atRiskKg,
       highRiskCrops: high.length,
+      aiGlobalImpact: globalImpact,
     },
     topRisk: top
-      ? { cropId: top.id, crop: top.name, farmId: top.farmId, farm: top.farm, expectedKg: top.expectedKg, exposedKg: exposed(top) }
+      ? {
+        cropId: top.id,
+        crop: top.name,
+        farmId: top.farmId,
+        farm: top.farm,
+        expectedKg: top.expectedKg,
+        exposedKg: Math.round(top.expectedKg * (surplusWeightedRisk ?? 1)),
+      }
       : null,
     harvests: crops,
+    aiSurplusAlerts: aiAlerts,
   };
 }
