@@ -1,7 +1,7 @@
 """
 Quick connection test: sends one tiny question to your NVIDIA model.
 Run:  python check_nvidia.py [model-name]
-Example: python check_nvidia.py meta/llama-3.3-70b-instruct
+Example: python check_nvidia.py nvidia/nemotron-3-super-120b-a12b
 Tells you if the key works, which model answered, and how long it took.
 """
 import os

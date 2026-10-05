@@ -7,8 +7,8 @@ For each model it runs brain.think() once (up to 2 attempts) and reports:
   source : 'model' = its answer passed every check, 'reference' = it failed
   tries  : attempts needed (1 is best)
   secs   : total time
-  notes  : places it disagreed with the plain math (fewer = closer to the math,
-           but a note is not automatically a mistake: read them)
+  notes  : weeks where it moved tonnes away from the score-ranked baseline (a note
+           is not automatically a mistake: read them)
   saved_t / revenue / co2e : the outcome of ITS allocations (computed by code)
 
 This uses your NVIDIA credits (a handful of calls per model).
@@ -72,7 +72,7 @@ def print_table(rows: list, reference: dict) -> None:
             print(f"  {x['model']}:")
             for line in x["log"][:-1]:          # last line is just 'using reference'
                 print("    -", line[:230])
-    print("\nFirst few disagreements with the math, per accepted model:")
+    print("\nFirst few departures from the baseline, per accepted model:")
     for x in rows:
         if x["source"] == "model" and x["note_list"]:
             print(f"  {x['model']}:")
