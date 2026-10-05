@@ -1,9 +1,54 @@
-import pg from "pg";
-import { config } from "../config.js";
+import oracledb from 'oracledb';
 
-pg.types.setTypeParser(1700, parseFloat); // numeric -> number
-pg.types.setTypeParser(20, (v) => parseInt(v, 10)); // bigint (counts) -> number
-pg.types.setTypeParser(1082, (v) => v); // date -> "YYYY-MM-DD" string
+// Match PostgreSQL's default auto-commit behavior
+oracledb.autoCommit = true;
 
-export const pool = new pg.Pool({ connectionString: config.DATABASE_URL });
-export const query = (text, params) => pool.query(text, params);
+let pool;
+
+export const initDb = async () => {
+  try {
+    pool = await oracledb.createPool({
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      connectString: process.env.DB_CONNECTION_STRING,
+      poolMin: 2,
+      poolMax: 10,
+      poolIncrement: 1
+    });
+    console.log('Connected to Oracle Database');
+  } catch (err) {
+    console.error('Oracle pool creation failed:', err);
+    process.exit(1);
+  }
+};
+
+export const query = async (sql, binds = []) => {
+  let connection;
+  try {
+    if (!pool) await initDb();
+    connection = await pool.getConnection();
+    
+    // outFormat ensures Oracle returns objects like Postgres does
+    const result = await connection.execute(sql, binds, { 
+      outFormat: oracledb.OUT_FORMAT_OBJECT 
+    });
+    
+    return { 
+      rows: result.rows || [], 
+      rowCount: result.rowsAffected || 0 
+    };
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing Oracle connection:', err);
+      }
+    }
+  }
+};
+
+export const getClient = async () => {
+  if (!pool) await initDb();
+  return await pool.getConnection();
+};

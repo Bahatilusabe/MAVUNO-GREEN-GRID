@@ -9,6 +9,7 @@ import auth from "./modules/auth/routes.js";
 import farms from "./modules/farms/routes.js";
 import overview from "./modules/overview/routes.js";
 import notifications from "./modules/notifications/routes.js";
+import transactionRoutes from "./modules/transactions/routes.js";
 
 export function createApp() {
   const app = express();
@@ -22,10 +23,12 @@ export function createApp() {
     await query("SELECT 1");
     res.json({ ok: true });
   });
+
   app.use("/api/auth", auth);
   app.use("/api/farms", farms);
   app.use("/api/overview", overview);
   app.use("/api/notifications", notifications);
+  app.use("/api/transactions", transactionRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

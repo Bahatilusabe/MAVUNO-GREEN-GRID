@@ -25,6 +25,7 @@ CREATE SEQUENCE seq_users_id
     START WITH 1
     INCREMENT BY 1
     NOCYCLE;
+    
 
 -- Create trigger for auto-increment ID
 CREATE OR REPLACE TRIGGER trg_users_id

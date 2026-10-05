@@ -5,12 +5,17 @@ const EXPOSED_SHARE = 0.8;
 
 export async function getOverview(userId) {
   const [farmsRes, cropsRes] = await Promise.all([
-    query(`SELECT count(*) AS farms, COALESCE(sum(area_ha), 0) AS "areaHa" FROM farms WHERE owner_id = $1`, [userId]),
+    query(
+      `SELECT count(*) AS "farms", COALESCE(sum(area_ha), 0) AS "areaHa" 
+       FROM farms 
+       WHERE owner_id = :1`, 
+      [userId]
+    ),
     query(
       `SELECT c.id, c.name, c.stage, c.expected_kg AS "expectedKg", c.expected_harvest AS "expectedHarvest", c.risk,
-              f.id AS "farmId", f.name AS farm
+              f.id AS "farmId", f.name AS "farm"
        FROM crops c JOIN farms f ON f.id = c.farm_id
-       WHERE f.owner_id = $1
+       WHERE f.owner_id = :1
        ORDER BY c.expected_harvest NULLS LAST`,
       [userId],
     ),
