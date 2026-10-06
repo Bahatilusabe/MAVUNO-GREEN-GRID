@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   Bell,
+  Bot,
   CircleHelp,
   Menu,
-  MessageCircle,
   Shuffle,
   Sprout,
   X,
@@ -189,11 +189,15 @@ export default function Shell({
         <>
           {/* Floating Action Button */}
           <button 
-            className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-green-700 hover:bg-green-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer" 
-            aria-label="Open AI assistant" 
+            className="fixed bottom-6 right-6 z-40 group flex items-center gap-2.5 bg-brand-700 hover:bg-brand-800 text-primary-foreground px-5 py-3 rounded-full shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl active:translate-y-0 cursor-pointer"
+            aria-label="Ask MAVUNO AI"
             onClick={() => setChat(true)}
           >
-            <MessageCircle size={24} aria-hidden="true" />
+            <span className="relative flex items-center justify-center" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-60" />
+              <Bot size={20} className="relative z-10" />
+            </span>
+            <span className="font-semibold text-sm tracking-wide pr-1">Ask MAVUNO AI</span>
           </button>
 
           {/* Assistant Slide-over Drawer */}
