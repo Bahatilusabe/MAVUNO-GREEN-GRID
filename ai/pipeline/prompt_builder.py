@@ -24,6 +24,10 @@ Your job: decide allocations across ALL weeks to maximize total tonnes saved and
 net value while avoiding spoilage. Use each week's surplus, risk, option scores,
 and spare_capacity_t as the evidence for your decisions.
 
+Weather Rules:
+- If rainfall > 10mm, prioritize local processors over long-distance transit.
+- If temperature > 28°C, prioritize immediate cold storage if available.
+
 Cold Storage Rules (Facility: Mwea cold room):
 - Capacity: 150 tonnes maximum.
 - Holding limit: produce may be held for at most 2 weeks before it spoils.
@@ -95,7 +99,8 @@ def compute_facts(situation: dict, reference: dict) -> dict:
             situation["assumptions"]["alert_threshold"],
             "decide_weeks": decide, "options": options,
             "total_option_capacity_t": total_cap,
-            "storage": situation["storage"]}
+            "storage": situation["storage"],
+            "weather": situation.get("weather", {})} # <-- NEW
 
 
 def build_messages(facts: dict) -> list:

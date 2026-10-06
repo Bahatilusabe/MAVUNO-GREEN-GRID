@@ -2,6 +2,9 @@
 MAVUNO-X FastAPI Backend
 Run this server with: python main.py
 """
+from datetime import datetime
+from typing import Optional
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +20,7 @@ from pipeline.brain_schema import build_situation
 from explanations.explainer import explain_alert
 from matching.matcher import OPTIONS
 from pipeline.run_pipeline import CAPACITY_T
+from weather.weather_client import get_weather
 
 app = FastAPI(title="MAVUNO-X AI API")
 app.add_middleware(
@@ -34,21 +38,34 @@ app.add_middleware(
 
 class ChatQuery(BaseModel):
     message: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    farm_name: Optional[str] = "Oloitiptip Family Farm"
+    crop: Optional[str] = "tomatoes and kale"
+    size_acres: Optional[float] = 2.5
 
 
 @app.post("/api/v1/chat")
 def chat_endpoint(query: ChatQuery):
-    """Answer a farmer question with the NVIDIA-hosted MAVUNO assistant."""
+    """Answer a farmer question with live date, weather, and farm context included."""
+    weather = get_weather(query.lat, query.lng)
+    location_label = "at the selected farm location" if query.lat else "in your region"
+    today_str = datetime.now().strftime("%A, %B %d, %Y")
+
     messages = [
         {
             "role": "system",
             "content": (
-                "You are MAVUNO AI, an expert agricultural and resource assistant "
-                "for MAVUNO Green Grid in Kenya. You help farmers manage crop "
-                "surpluses, coordinate with buyers, cold storage, processors, and "
-                "transport, and reduce food waste. Keep answers concise, practical, "
-                "and tailored to smallholder farmers. Do not invent farm-specific "
-                "facts that were not provided."
+                "You are MAVUNO AI, an expert agricultural and logistics assistant "
+                "for MAVUNO Green Grid in Kenya. "
+                f"Today's date is {today_str}. "
+                f"You are advising the owner of {query.farm_name}, "
+                f"a {query.size_acres}-acre farm primarily growing {query.crop}. "
+                f"Current local weather {location_label}: "
+                f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
+                "Integrate this farm profile, current date, and weather naturally into your advice. "
+                "STRICT RULE: Never apologize or disclaim that you lack access to real-time dates, time, GPS, or farm records. Speak with full authority using the supplied context. "
+                "Keep answers concise, practical, card-style, and tailored to smallholder farmers."
             ),
         },
         {"role": "user", "content": query.message},
@@ -57,14 +74,7 @@ def chat_endpoint(query: ChatQuery):
         response = call_nvidia(messages)
         return {"status": "success", "reply": response}
     except Exception as error:
-        print(f"MAVUNO chat request failed ({type(error).__name__}): {error}")
-        return {
-            "status": "error",
-            "reply": (
-                "I'm having trouble connecting to my AI core right now. "
-                "Please check your surplus risk watch and local storage options."
-            ),
-        }
+        return {"status": "error", "message": str(error)}
 
 
 @app.get("/api/v1/opportunities")
@@ -86,14 +96,15 @@ def get_opportunities():
 
 
 @app.get("/api/v1/surplus-alerts")
-def get_alerts():
+def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
     """
-    Builds the situation, asks the NVIDIA model to plan 12-week cold storage,
-    and generates natural language explanations for high-risk weeks.
+    Builds the situation for the selected map coordinates, asks the NVIDIA model 
+    to plan storage, and generates natural language explanations.
     """
-    situation = build_situation()
+    # 1. We will pass the coordinates into build_situation
+    situation = build_situation(lat, lng)
     
-    # 3. Ask the NVIDIA model to generate the multi-week plan
+    # 2. Ask the NVIDIA model to generate the multi-week plan
     result = think(situation)
     decision = result["decision"]
     
