@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Cherry, Droplets, MapPin, Tractor, TrendingUp } from "lucide-react";
-import { Tabs, Thumb, FakeMap } from "../components/ui";
+import { Cherry, Droplets, MapPin, Tractor, TrendingUp, ArrowLeft, ArrowRight, Compass, ShieldCheck } from "lucide-react";
+import { Thumb, FakeMap } from "../components/ui";
 
 const ACTIVITY = [
   [Cherry, "Tomato crop updated • 2 days ago"],
@@ -11,67 +11,128 @@ const ACTIVITY = [
 
 export default function FarmDetails({ farm, onBack, onForecast }) {
   const [tab, setTab] = useState("Overview");
+
   return (
-    <>
-      <button className="link" onClick={onBack}>
-        ‹ Back to My Farms
-      </button>
-      <h2>{farm.name}</h2>
-      <small className="farm-county">
-        <MapPin aria-hidden="true" size={14} /> {farm.county} County
-      </small>
-      <Tabs
-        tabs={["Overview", "Crops", "Soil & Water", "History"]}
-        active={tab}
-        onChange={setTab}
-      />
+    <div className="space-y-6 pb-12">
+      {/* Back Button & Header */}
+      <div className="space-y-2">
+        <button 
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 hover:text-green-900 transition-colors"
+        >
+          <ArrowLeft size={16} /> Back to My Farms
+        </button>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-950">{farm.name}</h2>
+            <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+              <MapPin aria-hidden="true" size={14} className="text-green-600" /> 
+              {farm.county} County
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full w-fit">
+            <ShieldCheck size={14} /> Active Farm Record
+          </span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 gap-8">
+        {["Overview", "Crops", "Soil & Water", "History"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+              tab === t 
+                ? "border-green-700 text-green-800" 
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       {tab === "Overview" ? (
-        <div className="split">
-          <div className="card">
-            <div className="farm-hero">
-              <Thumb crop={farm.crop} size={150} />
-              <div className="mini-grid">
-                <div>
-                  <small>Total Area</small>
-                  <strong>{farm.area} ha</strong>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Main Farm Info Card (7 columns) */}
+          <div className="lg:col-span-7 bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6 bg-green-50/40 p-4 rounded-xl border border-green-100">
+              <div className="flex-shrink-0">
+                <Thumb crop={farm.crop} size={110} />
+              </div>
+              
+              {/* Mini Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 flex-1 w-full">
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-xs">
+                  <small className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block">Total Area</small>
+                  <strong className="text-base font-bold text-gray-900">{farm.area} ha</strong>
                 </div>
-                <div>
-                  <small>Farm Type</small>
-                  <strong>{farm.type}</strong>
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-xs">
+                  <small className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block">Farm Type</small>
+                  <strong className="text-base font-bold text-gray-900">{farm.type}</strong>
                 </div>
-                <div>
-                  <small>Water Source</small>
-                  <strong>{farm.water}</strong>
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-xs">
+                  <small className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block">Water Source</small>
+                  <strong className="text-base font-bold text-gray-900">{farm.water}</strong>
                 </div>
-                <div>
-                  <small>Irrigation</small>
-                  <strong>{farm.irrigation}</strong>
+                <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-xs">
+                  <small className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block">Irrigation</small>
+                  <strong className="text-base font-bold text-gray-900">{farm.irrigation}</strong>
                 </div>
               </div>
             </div>
-            <h4>Farm Location</h4>
-            <small>{farm.coords}</small>
-            <FakeMap
-              pins={[{ x: 50, y: 50, color: "#1e7a46", label: farm.name }]}
-              height={150}
-            />
-            <button className="btn" onClick={onForecast}>
-              View Harvest Forecast
+
+            {/* Location Section */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <Compass size={16} className="text-green-600" /> Farm Location
+                </h4>
+                <small className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{farm.coords}</small>
+              </div>
+
+              <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: "180px" }}>
+                <FakeMap
+                  pins={[{ x: 50, y: 50, color: "#1e7a46", label: farm.name }]}
+                  height="100%"
+                />
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button 
+              className="w-full py-3 px-4 bg-green-700 text-white text-sm font-semibold rounded-xl hover:bg-green-800 transition-colors shadow-sm flex items-center justify-center gap-2" 
+              onClick={onForecast}
+            >
+              View Harvest Forecast <ArrowRight size={16} />
             </button>
           </div>
-          <div className="card">
-            <h4>Recent Activity</h4>
-            {ACTIVITY.map(([Icon, activity]) => (
-              <div key={activity} className="row">
-                <Icon aria-hidden="true" size={18} />
-                <small className="grow">{activity}</small>
-              </div>
-            ))}
+
+          {/* Recent Activity Card (5 columns) */}
+          <div className="lg:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            <h4 className="text-base font-bold text-gray-900 border-b pb-3">Recent Activity</h4>
+            
+            <div className="space-y-3">
+              {ACTIVITY.map(([Icon, activity], index) => (
+                <div key={index} className="flex items-center gap-3.5 p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-green-50/30 transition-colors">
+                  <div className="p-2.5 bg-green-100 text-green-700 rounded-lg flex-shrink-0">
+                    <Icon aria-hidden="true" size={18} />
+                  </div>
+                  <small className="text-xs font-medium text-gray-700 leading-relaxed block">{activity}</small>
+                </div>
+              ))}
+            </div>
           </div>
+
         </div>
       ) : (
-        <div className="card empty">{tab} details coming soon.</div>
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
+          {tab} details coming soon.
+        </div>
       )}
-    </>
+    </div>
   );
 }

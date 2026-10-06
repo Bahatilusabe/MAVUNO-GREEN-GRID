@@ -32,10 +32,10 @@ export default function AdminDashboard() {
     const pendingUsers = users.filter((u) => u.status === "Pending").length;
     const pendingPartners = partners.filter((p) => p.status === "Pending").length;
     return [
-      [UsersRound, "Total farmers", users.length, `${users.filter((u) => u.status === "Active").length} active`],
-      [Tractor, "Registered farms", users.reduce((s, u) => s + u.farms, 0), "across 5 counties"],
-      [Scale, "Expected harvest", `${users.reduce((s, u) => s + u.tons, 0).toFixed(1)} t`, "all farmers"],
-      [Clock3, "Pending approvals", pendingUsers + pendingPartners, `${pendingUsers} farmers, ${pendingPartners} partners`],
+      [UsersRound, "Total farmers", users.length, `${users.filter((u) => u.status === "Active").length} active`, false],
+      [Tractor, "Registered farms", users.reduce((s, u) => s + u.farms, 0), "across 5 counties", false],
+      [Scale, "Expected harvest", `${users.reduce((s, u) => s + u.tons, 0).toFixed(1)} t`, "all farmers", false],
+      [Clock3, "Pending approvals", pendingUsers + pendingPartners, `${pendingUsers} farmers, ${pendingPartners} partners`, false],
       [TriangleAlert, "Open alerts", alerts.length, "needs review", alerts.length > 0],
     ];
   }, [users, partners, alerts]);
@@ -70,12 +70,14 @@ export default function AdminDashboard() {
       },
     });
   };
+
   const setPartnerStatus = (id, status) => {
     setPartners((current) =>
       current.map((p) => (p.id === id ? { ...p, status } : p)),
     );
     toast.success(`Partner ${status.toLowerCase()}`);
   };
+
   const resolveAlert = (id) => {
     const alert = alerts.find((item) => item.id === id);
     if (!alert) return;
@@ -92,15 +94,44 @@ export default function AdminDashboard() {
   };
 
   return (
-    <Shell nav={nav} active={active} onNavigate={jump} title="Admin Dashboard" subtitle="Platform overview for MAVUNO Green Grid" user={USER} alerts={alerts.length}>
-      <div className="ad">
+    <Shell 
+      nav={nav} 
+      active={active} 
+      onNavigate={jump} 
+      title="Admin Dashboard" 
+      subtitle="Platform overview for MAVUNO Green Grid" 
+      user={USER} 
+      alerts={alerts.length}
+    >
+      <div className="space-y-6 pb-12">
+        {/* KPI Summary Grid */}
         <KpiGrid kpis={kpis} />
-        <div className="ad-grid2"><WasteCard /><CountyRiskCard /></div>
-        <FarmersTable users={users} onStatus={setUserStatus} />
-        <div className="ad-grid2"><StatusCard users={users} /><PartnersCard partners={partners} onDecide={setPartnerStatus} /></div>
-        <div className="ad-grid2">
-          <AlertsCard alerts={alerts} onResolve={resolveAlert} />
-          <HealthCard />
+
+        {/* Waste Avoided & County Risk Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <WasteCard />
+          <CountyRiskCard />
+        </div>
+
+        {/* Farmers Management Table */}
+        <div id="farmers">
+          <FarmersTable users={users} onStatus={setUserStatus} />
+        </div>
+
+        {/* Status Donut & Partners Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="partners">
+          <StatusCard users={users} />
+          <PartnersCard partners={partners} onDecide={setPartnerStatus} />
+        </div>
+
+        {/* System Alerts & Health Monitoring */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div id="alerts">
+            <AlertsCard alerts={alerts} onResolve={resolveAlert} />
+          </div>
+          <div id="health">
+            <HealthCard />
+          </div>
         </div>
       </div>
     </Shell>

@@ -40,11 +40,13 @@ export default function FarmerPortal({ initialView = "overview" }) {
     const h = new Date().getHours();
     return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   });
+
   const farm = farms.find((f) => f.id === farmId) || farms[0];
 
   const go = (v) => { setView(v); setAdding(false); };
   const openFarm = (id) => { setFarmId(id); setView("farm"); };
   const openCrop = (id) => { setFarmId(id); setView("forecast"); };
+  
   const addFarm = (f) => {
     setFarms([...farms, { id: Date.now(), name: f.name, county: f.county, area: f.area, crop: "Rice", kg: 0, harvest: "—", risk: "Low", perf: 0, type: "Smallholder", water: f.water || "—", irrigation: f.irrigation || "—", stage: "Planning", coords: "—" }]);
     setAdding(false);
@@ -63,10 +65,10 @@ export default function FarmerPortal({ initialView = "overview" }) {
     case "overview": content = <Overview farms={farms} go={go} onOpenFarm={openFarm} />; break;
     case "farms":
       content = (
-        <>
+        <div className="space-y-6">
           {adding && <AddFarmForm onSave={addFarm} onCancel={() => setAdding(false)} />}
           <MyFarms farms={farms} onOpen={openFarm} onAdd={() => setAdding(true)} />
-        </>
+        </div>
       );
       break;
     case "farm": content = <FarmDetails farm={farm} onBack={() => go("farms")} onForecast={() => setView("forecast")} />; break;
@@ -80,7 +82,11 @@ export default function FarmerPortal({ initialView = "overview" }) {
     case "storage": content = <Storage farms={farms} />; break;
     case "transport": content = <Transport go={go} />; break;
     case "messages": content = <Messages items={notes} setItems={setNotes} go={go} />; break;
-    default: content = <div className="card empty">{navTitle} is coming soon.</div>;
+    default: content = (
+      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
+        {navTitle} is coming soon.
+      </div>
+    );
   }
 
   return (
@@ -88,19 +94,32 @@ export default function FarmerPortal({ initialView = "overview" }) {
       nav={nav}
       active={activeNav}
       onNavigate={go}
-      title={home ? <>{greeting}, Samuel <Hand aria-hidden="true" size={20} /></> : navTitle}
+      title={
+        home ? (
+          <span className="flex items-center gap-2">
+            {greeting}, Samuel <Hand className="text-amber-500 inline-block" aria-hidden="true" size={20} />
+          </span>
+        ) : (
+          navTitle
+        )
+      }
       subtitle={home ? "Here's what MAVUNO is seeing across your farms today." : SUBTITLES[view]}
       user={FARMER_USER}
       alerts={unread}
       onBell={() => go("messages")}
       actions={
-        <select value={county} onChange={(e) => setCounty(e.target.value)} aria-label="County">
-          {COUNTIES.map((c) => <option key={c}>{c}</option>)}
+        <select 
+          value={county} 
+          onChange={(e) => setCounty(e.target.value)} 
+          aria-label="County"
+          className="bg-gray-50 border border-gray-200 text-gray-800 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 outline-none focus:border-green-600 transition-all cursor-pointer shadow-2xs"
+        >
+          {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
         </select>
       }
-      aside={<Assistant className="sh-assist" />}
+      aside={<Assistant />}
     >
-      <div className="fp">{content}</div>
+      <div className="space-y-6">{content}</div>
     </Shell>
   );
 }

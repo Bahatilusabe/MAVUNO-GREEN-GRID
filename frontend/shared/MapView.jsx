@@ -17,7 +17,12 @@ const toLatLng = (p) =>
 
 const pinIcon = (color) => {
   const safe = /^#[0-9a-f]{3,8}$/i.test(color) ? color : "#1e7a46";
-  return L.divIcon({ className: "mv-pin", html: `<span style="background:${safe}"></span>`, iconSize: [22, 22], iconAnchor: [11, 22] });
+  return L.divIcon({ 
+    className: "bg-transparent", 
+    html: `<span style="background:${safe}; width:20px; height:20px; display:inline-block; border-radius:50%; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>`, 
+    iconSize: [20, 20], 
+    iconAnchor: [10, 20] 
+  });
 };
 
 function Fit({ k }) {
@@ -33,8 +38,9 @@ function Fit({ k }) {
 export default function MapView({ pins = [], height = 260, risk = false }) {
   const points = pins.map(toLatLng);
   const k = points.map((p) => p.join(",")).join("|");
+  
   return (
-    <div className="mv-map" style={{ height }}>
+    <div className="w-full rounded-xl overflow-hidden border border-gray-200 shadow-xs relative z-0" style={{ height }}>
       <MapContainer center={[-0.5, 37.35]} zoom={11} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
         <TileLayer {...TILES} />
         <Fit k={k} />
@@ -43,7 +49,7 @@ export default function MapView({ pins = [], height = 260, risk = false }) {
         ))}
         {pins.map((p, i) => (
           <Marker key={i} position={points[i]} icon={pinIcon(p.color)}>
-            {p.label && <Tooltip direction="top" offset={[0, -18]}>{p.label}</Tooltip>}
+            {p.label && <Tooltip direction="top" offset={[0, -18]} className="rounded-md font-semibold text-xs shadow-sm">{p.label}</Tooltip>}
           </Marker>
         ))}
       </MapContainer>
