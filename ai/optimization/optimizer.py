@@ -1,22 +1,15 @@
-# Optimization Algorithms
+import pandas as pd
 
-from scipy.optimize import minimize
-
-class ResourceOptimizer:
-    def __init__(self):
-        self.constraints = []
-    
-    def optimize_resource_allocation(self, farm_data, resources):
-        """Optimize resource allocation for maximum yield"""
-        # Implementation here
-        pass
-    
-    def optimize_planting_schedule(self, farm_data, crops):
-        """Optimize planting schedule"""
-        # Implementation here
-        pass
-    
-    def optimize_logistics(self, shipments, routes):
-        """Optimize logistics routes"""
-        # Implementation here
-        pass
+def allocate(surplus_t: float, ranked: pd.DataFrame) -> pd.DataFrame:
+    """Fill options in order of score. Returns the table with allocated_t,
+    and stores any tonnes nobody could take in df.attrs['unallocated_t']."""
+    df = ranked.sort_values("score", ascending=False).reset_index(drop=True)
+    remaining = surplus_t
+    given = []
+    for cap in df.capacity_t:
+        take = min(remaining, cap)
+        given.append(take)
+        remaining -= take
+    df["allocated_t"] = given
+    df.attrs["unallocated_t"] = remaining
+    return df

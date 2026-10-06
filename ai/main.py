@@ -12,11 +12,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 2. Import the actual AI Brain instead of the basic math pipeline
-from brain import call_nvidia, think
-from brain_schema import build_situation
-from explanation import explain_alert
-from matching_scores import OPTIONS
-from run_pipeline import CAPACITY_T
+from pipeline.brain import call_nvidia, think
+from pipeline.brain_schema import build_situation
+from explanations.explainer import explain_alert
+from matching.matcher import OPTIONS
+from pipeline.run_pipeline import CAPACITY_T
 
 app = FastAPI(title="MAVUNO-X AI API")
 app.add_middleware(

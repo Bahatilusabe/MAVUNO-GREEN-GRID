@@ -13,15 +13,15 @@ the whole plumbing (and later compare the model against it) without any model.
 """
 import copy
 import json
-
 import pandas as pd
 
-from surplus_forecast import (SAMPLE_COHORTS, WEEKLY_DEMAND_T, HARVEST_LOSS,
-                              SHELF_LIFE_DAYS, ALERT_THRESHOLD,
-                              forecast_surplus, add_risk)
-from matching_scores import OPTIONS, score_options
-from allocation import allocate
-from run_pipeline import CAPACITY_T
+# --- NEW UPDATED IMPORTS ---
+from forecasting.forecaster import SAMPLE_COHORTS, WEEKLY_DEMAND_T, HARVEST_LOSS, forecast_surplus
+from risk.risk_assessor import SHELF_LIFE_DAYS, ALERT_THRESHOLD, add_risk
+from matching.matcher import OPTIONS, score_options
+from optimization.optimizer import allocate
+from pipeline.run_pipeline import CAPACITY_T
+# ---------------------------
 
 TOL_T = 0.5   # tonnes of rounding slack when checking the model's sums
 
