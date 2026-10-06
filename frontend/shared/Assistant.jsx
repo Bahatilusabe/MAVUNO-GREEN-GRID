@@ -88,21 +88,24 @@ export default function Assistant({ className = "", selectedPin = null }) {
       </div>
 
       {/* Suggested Prompts Section */}
-      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-2">
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Suggested prompts</span>
-        <div className="flex flex-wrap gap-1.5">
-          {PROMPTS.map((p) => (
-            <button
-              key={p}
-              disabled={loading}
-              onClick={() => send(p)}
-              className="px-3 py-1.5 bg-white border border-gray-200 hover:border-green-300 hover:bg-green-50/50 text-gray-700 text-xs font-medium rounded-lg transition-all shadow-2xs text-left disabled:opacity-50"
-            >
-              {p}
-            </button>
-          ))}
+      {/* Suggested Prompts Section - Only show if no user messages exist yet */}
+      {msgs.length <= 1 && (
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-2">
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Suggested prompts</span>
+          <div className="flex flex-wrap gap-1.5">
+            {PROMPTS.map((p) => (
+              <button
+                key={p}
+                disabled={loading}
+                onClick={() => send(p)}
+                className="px-3 py-1.5 bg-white border border-gray-200 hover:border-green-300 hover:bg-green-50/50 text-gray-700 text-xs font-medium rounded-lg transition-all shadow-2xs text-left disabled:opacity-50"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Input Form */}
       <form 

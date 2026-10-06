@@ -82,6 +82,15 @@ export const PROMPTS = [
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
 
+export async function fetchWeatherForecast({ lat = -0.5186, lon = 37.3675 } = {}) {
+  const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+  const response = await fetch(`${API_URL}/weather/forecast?${params}`);
+  if (!response.ok) {
+    throw new Error(`Weather service returned HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function fetchSurplusAlerts() {
   try {
     const response = await fetch(`${API_URL}/surplus-alerts`);

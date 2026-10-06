@@ -9,6 +9,7 @@ import interventionRoutes from "./modules/interventions/routes.js";
 import transactionRoutes from "./modules/transactions/routes.js";
 import transportRoutes from "./modules/transport/routes.js";
 import storageRoutes from "./modules/storage/routes.js";
+import weatherRoutes from "./modules/weather/routes.js";
 
 export function createApp() {
   const app = express();
@@ -28,6 +29,7 @@ export function createApp() {
   v1Router.use("/transactions", transactionRoutes);
   v1Router.use("/transport", transportRoutes);
   v1Router.use("/storage", storageRoutes);
+  v1Router.use("/weather", weatherRoutes);
 
   // Provide an endpoint for opportunities to clear frontend errors
   // Provide an endpoint for opportunities to clear frontend errors
@@ -54,7 +56,7 @@ export function createApp() {
   // Global Error Handler
   app.use((err, req, res, next) => {
     console.error(err);
-    res.status(500).json({ error: err.message || "Internal Server Error" });
+    res.status(err.statusCode || 500).json({ error: err.message || "Internal Server Error" });
   });
 
   return app;
