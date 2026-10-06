@@ -51,30 +51,10 @@ export function Stat({ icon, label, value }) {
   );
 }
 
-export function FakeMap({ pins = [], height = 260, risk = false }) {
-  return (
-    <div className={cls("map", risk && "map-risk")} style={{ height }}>
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="map-roads"
-        aria-hidden
-      >
-        <path d="M0 30 Q30 40 50 55 T100 80" />
-        <path d="M20 0 Q35 40 60 100" />
-        <path d="M0 85 Q40 60 100 20" />
-      </svg>
-      {risk && <div className="risk-blob" />}
-      {pins.map((p, i) => (
-        <span
-          key={i}
-          className="pin"
-          style={{ left: `${p.x}%`, top: `${p.y}%`, background: p.color }}
-          title={p.label}
-        />
-      ))}
-    </div>
-  );
+import MapView from "../../shared/MapView";
+
+export function FakeMap(props) {
+  return <MapView {...props} />;
 }
 
 export function Toggle({ label, on, onChange }) {

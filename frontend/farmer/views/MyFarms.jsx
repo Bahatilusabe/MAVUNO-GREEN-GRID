@@ -1,5 +1,6 @@
 import { Sprout } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
+import { parseCoords } from "../../shared/geo";
 import { riskClass } from "../constants";
 import { KpiRow, Thumb, FakeMap } from "../components/ui";
 
@@ -16,7 +17,12 @@ export default function MyFarms({ farms, onOpen, onAdd }) {
     );
   }
 
-  const pins = farms.map((f, i) => ({ x: 25 + i * 22, y: 30 + (i % 2) * 30, color: f.risk === "High" ? "#dc2626" : "#1e7a46", label: f.name }));
+  const pins = farms.flatMap((f) => {
+    const c = parseCoords(f.coords);
+    return c ? [{ ...c, color: f.risk === "High" ? "#dc2626" : "#1e7a46", label: f.name }] : [];
+  });
+  const unmapped = farms.length - pins.length;
+
   return (
     <div className="split farms-page">
       <div>
@@ -38,7 +44,11 @@ export default function MyFarms({ farms, onOpen, onAdd }) {
       <div>
         <div className="card">
           <FakeMap pins={pins} height={240} risk />
-          <div className="legend"><i style={{ background: "#1e7a46" }} />Your Farms <i style={{ background: "#dc2626" }} />Risk Area <i style={{ background: "#7cc79a" }} />Other Farms</div>
+          <div className="legend">
+            <span><i style={{ background: "#1e7a46" }} />Your Farms</span>
+            <span><i style={{ background: "#dc2626" }} />Risk Area</span>
+          </div>
+          {unmapped > 0 && <small>{unmapped} farm{unmapped > 1 ? "s" : ""} without coordinates not shown.</small>}
         </div>
         <div className="card">
           <h3>Farm Performance</h3>

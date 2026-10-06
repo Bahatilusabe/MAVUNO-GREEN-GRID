@@ -111,3 +111,6 @@
 .nt-meta { display: flex; align-items: center; gap: 8px; flex: none; }
 .nt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--g500); }
 @media (max-width: 640px) { .nt { flex-wrap: wrap; } .nt-body { flex-basis: calc(100% - 70px); } }
+
+.mv-map { position: relative; z-index: 0; isolation: isolate; border-radius: 12px; overflow: hidden; }
+.mv-pin span { display: block; width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, .35); }
