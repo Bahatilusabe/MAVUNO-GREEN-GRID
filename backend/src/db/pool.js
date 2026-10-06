@@ -35,3 +35,18 @@ export async function getConnection() {
     throw err;
   }
 }
+
+export async function query(sql, values = []) {
+  const connection = await getConnection();
+  try {
+    const oracleSql = sql.replace(/\$(\d+)/g, ":$1");
+    const result = await connection.execute(
+      oracleSql,
+      values,
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    return { rows: result.rows ?? [] };
+  } finally {
+    await connection.close();
+  }
+}

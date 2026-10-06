@@ -10,12 +10,13 @@ import transactionRoutes from "./modules/transactions/routes.js";
 import transportRoutes from "./modules/transport/routes.js";
 import storageRoutes from "./modules/storage/routes.js";
 import weatherRoutes from "./modules/weather/routes.js";
+import overviewRoutes from "./modules/overview/routes.js";
 
 export function createApp() {
   const app = express();
 
   app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true
   }));
   app.use(express.json());
@@ -30,6 +31,7 @@ export function createApp() {
   v1Router.use("/transport", transportRoutes);
   v1Router.use("/storage", storageRoutes);
   v1Router.use("/weather", weatherRoutes);
+  v1Router.use("/overview", overviewRoutes);
 
   // Provide an endpoint for opportunities to clear frontend errors
   // Provide an endpoint for opportunities to clear frontend errors
@@ -40,6 +42,15 @@ export function createApp() {
       { id: 2, name: "Kagio Juice Processors", type: "processor", distance_km: 20, capacity_t: 2000, price_kes_kg: 20, lead_days: 2 },
       { id: 3, name: "Kirinyaga Cold Storage", type: "cold_store", distance_km: 10, capacity_t: 5000, price_kes_kg: 12, lead_days: 1 }
     ]);
+  });
+
+  // Provide an endpoint for the AI Assistant chat
+  v1Router.post("/chat", (req, res) => {
+    const { message } = req.body;
+    res.json({
+      status: "success",
+      reply: `I received your message: "${message}". I am successfully connected to the backend, but my AI brain is still being wired up!`,
+    });
   });
 
   // Provide an endpoint for surplus alerts to clear 404 errors
@@ -56,7 +67,8 @@ export function createApp() {
   // Global Error Handler
   app.use((err, req, res, next) => {
     console.error(err);
-    res.status(err.statusCode || 500).json({ error: err.message || "Internal Server Error" });
+    res.status(err.statusCode || (typeof err.status === "number" ? err.status : 500))
+      .json({ error: err.message || "Internal Server Error" });
   });
 
   return app;
