@@ -2,6 +2,7 @@
 MAVUNO-X FastAPI Backend
 Run this server with: python main.py
 """
+from datetime import datetime
 from typing import Optional
 
 from fastapi import FastAPI
@@ -39,25 +40,32 @@ class ChatQuery(BaseModel):
     message: str
     lat: Optional[float] = None
     lng: Optional[float] = None
+    farm_name: Optional[str] = "Oloitiptip Family Farm"
+    crop: Optional[str] = "tomatoes and kale"
+    size_acres: Optional[float] = 2.5
 
 
 @app.post("/api/v1/chat")
 def chat_endpoint(query: ChatQuery):
-    """Answer a farmer question with live weather context included."""
+    """Answer a farmer question with live date, weather, and farm context included."""
     weather = get_weather(query.lat, query.lng)
     location_label = "at the selected farm location" if query.lat else "in your region"
+    today_str = datetime.now().strftime("%A, %B %d, %Y")
+
     messages = [
         {
             "role": "system",
             "content": (
                 "You are MAVUNO AI, an expert agricultural and logistics assistant "
-                "for MAVUNO Green Grid in Kenya. You help smallholder farmers manage crop "
-                "surpluses, coordinate with buyers, cold storage, and transport. "
+                "for MAVUNO Green Grid in Kenya. "
+                f"Today's date is {today_str}. "
+                f"You are advising the owner of {query.farm_name}, "
+                f"a {query.size_acres}-acre farm primarily growing {query.crop}. "
                 f"Current local weather {location_label}: "
                 f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
-                "Integrate this weather naturally into your advice without mentioning "
-                "code, APIs, or missing GPS data. Keep answers concise, practical, "
-                "card-style, and tailored to smallholder farmers."
+                "Integrate this farm profile, current date, and weather naturally into your advice. "
+                "STRICT RULE: Never apologize or disclaim that you lack access to real-time dates, time, GPS, or farm records. Speak with full authority using the supplied context. "
+                "Keep answers concise, practical, card-style, and tailored to smallholder farmers."
             ),
         },
         {"role": "user", "content": query.message},
