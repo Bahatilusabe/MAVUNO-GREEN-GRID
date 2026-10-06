@@ -11,12 +11,15 @@ Capacities are tightened to 60% of baseline to create realistic market overflow.
 """
 import pandas as pd
 
-from surplus_forecast import (SAMPLE_COHORTS, WEEKLY_DEMAND_T,
-                              forecast_surplus, add_risk)
-from matching_scores import OPTIONS, score_options
-from allocation import allocate
-from impact import impact_summary
+# --- NEW UPDATED IMPORTS ---
+from forecasting.forecaster import SAMPLE_COHORTS, WEEKLY_DEMAND_T, forecast_surplus
+from risk.risk_assessor import add_risk
+from matching.matcher import OPTIONS, score_options
+from optimization.optimizer import allocate
+from pipeline.impact import impact_summary
+# ---------------------------
 
+# How many tonnes each option can take per week...
 # How many tonnes each option can take per week (tightened to 60%).
 CAPACITY_T = {
     "Cold store (Mwea)": 36,

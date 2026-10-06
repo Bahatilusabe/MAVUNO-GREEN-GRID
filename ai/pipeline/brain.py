@@ -37,9 +37,11 @@ except ImportError:                   # fine if the key is set another way
 
 import pandas as pd
 
-from brain_schema import (build_situation, reference_decision,
-                          validate_decision, add_impact)
-from matching_scores import score_options
+# --- NEW UPDATED IMPORTS ---
+from pipeline.brain_schema import (build_situation, reference_decision,
+                                   validate_decision, add_impact)
+from matching.matcher import score_options
+# ---------------------------
 
 # Optional: set LLM_BASE_URL in .env to use a different OpenAI-compatible
 # provider or a paid/dedicated endpoint (the key still goes in NVIDIA_API_KEY).
@@ -522,7 +524,7 @@ def explain_top_alert(situation: dict, decision: dict) -> None:
         "revenue_kes": revenue,
         "co2e_avoided_t": co2e / 1000,
     }
-    from explanation import explain_alert
+    from explanations.explainer import explain_alert
     explanation = explain_alert(row)
     print(f"\nAlert explanation ({explanation['source']}):")
     print(explanation["text"])
