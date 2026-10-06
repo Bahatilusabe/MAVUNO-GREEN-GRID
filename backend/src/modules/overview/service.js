@@ -1,4 +1,4 @@
-import { query } from "../../db/pool.js";
+import { getConnection } from "../../db/pool.js";
 
 const AI_SURPLUS_URL = process.env.AI_SURPLUS_URL
   || "http://localhost:8000/api/v1/surplus-alerts";

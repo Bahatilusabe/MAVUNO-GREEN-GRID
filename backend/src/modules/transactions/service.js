@@ -1,123 +1,111 @@
-import oracledb from 'oracledb';
-import { getClient } from '../../db/pool.js';
-import { AppError } from '../../utils/errors.js';
+import oracledb from "oracledb";
+import { getConnection } from "../../db/pool.js";
 
-// Define the strict paths a transaction can take
-const validTransportTransitions = {
-  'PENDING': ['ACCEPTED', 'CANCELLED'],
-  'ACCEPTED': ['PLANNED'],
-  'PLANNED': ['IN_TRANSIT'],
-  'IN_TRANSIT': ['DELIVERED'],
-  'DELIVERED': [],
-  'CANCELLED': []
-};
-
-const validStorageTransitions = {
-  'PENDING': ['CONFIRMED', 'CANCELLED'],
-  'CONFIRMED': ['COMPLETED', 'CANCELLED'],
-  'COMPLETED': [],
-  'CANCELLED': []
-};
-
-export const updateStorageState = async (reservationId, newStatus) => {
-  const connection = await getClient();
-  
+export async function getTransactionsByUser(userId) {
+  const connection = await getConnection();
   try {
-    // Lock the row to prevent concurrent modifications
     const result = await connection.execute(
-      'SELECT status FROM storage_reservations WHERE id = :1 FOR UPDATE', 
-      [reservationId],
+      `SELECT id, buyer_id, seller_id, crop_id, transaction_type, 
+              quantity, unit, unit_price, total_amount, 
+              status, payment_status, delivery_status, 
+              TO_CHAR(transaction_date, 'YYYY-MM-DD HH24:MI:SS') AS transaction_date,
+              TO_CHAR(payment_date, 'YYYY-MM-DD') AS payment_date,
+              notes, created_at, updated_at 
+       FROM transactions 
+       WHERE buyer_id = :userId OR seller_id = :userId 
+       ORDER BY transaction_date DESC`,
+      { userId },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
-    
-    if (!result.rows.length) {
-      throw new AppError('Storage reservation not found', 404);
-    }
-    
-    // Oracle returns column names in uppercase by default
-    const currentStatus = result.rows[0].STATUS || result.rows[0].status;
-    
-    if (!validStorageTransitions[currentStatus].includes(newStatus)) {
-      throw new AppError(`Invalid workflow transition: Cannot move from ${currentStatus} to ${newStatus}`, 400);
-    }
-
-    // Execute the state change
-    await connection.execute(
-      `UPDATE storage_reservations 
-       SET status = :1, updated_at = SYSTIMESTAMP 
-       WHERE id = :2`,
-      [newStatus, reservationId]
-    );
-
-    await connection.commit();
-
-    // Fetch and return the updated record
-    const updated = await connection.execute(
-      'SELECT * FROM storage_reservations WHERE id = :1',
-      [reservationId],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
-    );
-
-    return updated.rows[0];
-  } catch (error) {
-    await connection.rollback();
-    throw error;
+    return result.rows;
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    if (connection) await connection.close();
   }
-};
+}
 
-export const updateTransportState = async (requestId, newStatus) => {
-  const connection = await getClient();
-  
+export async function createTransaction(data) {
+  const connection = await getConnection();
   try {
-    // Lock the row to prevent concurrent modifications
     const result = await connection.execute(
-      'SELECT status FROM transport_requests WHERE id = :1 FOR UPDATE', 
-      [requestId],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      `INSERT INTO transactions (
+         buyer_id, seller_id, crop_id, transaction_type, 
+         quantity, unit, unit_price, total_amount, 
+         status, payment_status, delivery_status, notes
+       )
+       VALUES (
+         :buyer, :seller, :crop, :type, 
+         :qty, :unit, :price, :total, 
+         :status, :pay_status, :del_status, :notes
+       )
+       RETURNING id, transaction_date INTO :out_id, :out_trans_date`,
+      {
+        buyer: data.buyer_id,
+        seller: data.seller_id,
+        crop: data.crop_id || null,
+        type: data.transaction_type,
+        qty: data.quantity,
+        unit: data.unit,
+        price: data.unit_price,
+        total: data.total_amount,
+        status: data.status,
+        pay_status: data.payment_status,
+        del_status: data.delivery_status,
+        notes: data.notes || null,
+        out_id: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT },
+        out_trans_date: { type: oracledb.TIMESTAMP, dir: oracledb.BIND_OUT }
+      },
+      { 
+        autoCommit: true, 
+        outFormat: oracledb.OUT_FORMAT_OBJECT 
+      }
     );
     
-    if (!result.rows.length) {
-      throw new AppError('Transport request not found', 404);
-    }
-    
-    const currentStatus = result.rows[0].STATUS || result.rows[0].status;
-    
-    // Validate the requested transition
-    if (!validTransportTransitions[currentStatus].includes(newStatus)) {
-      throw new AppError(`Invalid workflow transition: Cannot move from ${currentStatus} to ${newStatus}`, 400);
-    }
-
-    // Execute the state change
-    await connection.execute(
-      `UPDATE transport_requests 
-       SET status = :1, updated_at = SYSTIMESTAMP 
-       WHERE id = :2`,
-      [newStatus, requestId]
-    );
-
-    await connection.commit();
-    
-    // Fetch and return the updated record
-    const updated = await connection.execute(
-      'SELECT * FROM transport_requests WHERE id = :1',
-      [requestId],
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
-    );
-
-    // NOTE: This is where we will trigger the Redis Event Pub/Sub for the Notification Engine
-    // eventHub.emit('transaction:updated', updated.rows[0]);
-
-    return updated.rows[0];
-  } catch (error) {
-    await connection.rollback();
-    throw error;
+    return {
+      id: result.outBinds.out_id[0],
+      transaction_date: result.outBinds.out_trans_date[0],
+      ...data
+    };
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    if (connection) await connection.close();
   }
-};
+}
+
+export async function updateTransactionState(transactionId, data) {
+  const connection = await getConnection();
+  try {
+    // Dynamically build the update query to only touch provided fields
+    const updates = [];
+    const binds = { id: transactionId };
+    
+    if (data.status) {
+      updates.push("status = :status");
+      binds.status = data.status;
+    }
+    if (data.payment_status) {
+      updates.push("payment_status = :payment_status");
+      binds.payment_status = data.payment_status;
+    }
+    if (data.delivery_status) {
+      updates.push("delivery_status = :delivery_status");
+      binds.delivery_status = data.delivery_status;
+    }
+    if (data.payment_date) {
+      updates.push("payment_date = TO_DATE(:payment_date, 'YYYY-MM-DD')");
+      binds.payment_date = data.payment_date;
+    }
+
+    if (updates.length === 0) return true; // Nothing to update
+
+    const result = await connection.execute(
+      `UPDATE transactions 
+       SET ${updates.join(', ')}
+       WHERE id = :id`,
+      binds,
+      { autoCommit: true }
+    );
+    
+    return result.rowsAffected > 0;
+  } finally {
+    if (connection) await connection.close();
+  }
+}

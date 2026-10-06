@@ -1,54 +1,37 @@
-import oracledb from 'oracledb';
+import oracledb from "oracledb";
+import dotenv from "dotenv";
 
-// Match PostgreSQL's default auto-commit behavior
-oracledb.autoCommit = true;
+dotenv.config();
 
-let pool;
+try {
+  oracledb.initOracleClient();
+} catch (err) {
+  // Ignored if thin mode is active or client is already initialized
+}
 
-export const initDb = async () => {
+export async function initDb() {
   try {
-    pool = await oracledb.createPool({
+    await oracledb.createPool({
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      connectString: process.env.DB_CONNECTION_STRING,
+      // Use DB_CONNECTION_STRING from your .env file
+      connectString: process.env.DB_CONNECTION_STRING || process.env.DB_DSN,
       poolMin: 2,
       poolMax: 10,
-      poolIncrement: 1
+      poolIncrement: 2
     });
-    console.log('Connected to Oracle Database');
+    console.log("Oracle Database connection pool established.");
   } catch (err) {
-    console.error('Oracle pool creation failed:', err);
-    process.exit(1);
+    console.error("Error initializing Oracle connection pool:", err);
+    throw err;
   }
-};
+}
 
-export const query = async (sql, binds = []) => {
-  let connection;
+export async function getConnection() {
   try {
-    if (!pool) await initDb();
-    connection = await pool.getConnection();
-    
-    // outFormat ensures Oracle returns objects like Postgres does
-    const result = await connection.execute(sql, binds, { 
-      outFormat: oracledb.OUT_FORMAT_OBJECT 
-    });
-    
-    return { 
-      rows: result.rows || [], 
-      rowCount: result.rowsAffected || 0 
-    };
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error('Error closing Oracle connection:', err);
-      }
-    }
+    return await oracledb.getConnection();
+  } catch (err) {
+    console.error("Error acquiring connection from pool:", err);
+    throw err;
   }
-};
-
-export const getClient = async () => {
-  if (!pool) await initDb();
-  return await pool.getConnection();
-};
+}

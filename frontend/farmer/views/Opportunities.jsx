@@ -33,13 +33,14 @@ export default function Opportunities() {
   const opportunities = backendOpportunities === null
     ? OPPS
     : backendOpportunities.map((item, index) => ({
-        id: `backend-${item.name}`,
-        name: item.name,
-        type: TYPE_LABELS[item.type] || item.type,
-        km: Number(item.distance_km),
-        cap: `${Number(item.capacity_t).toLocaleString("en-KE")} t/week`,
-        price: `KES ${Number(item.price_kes_kg).toLocaleString("en-KE")}/kg`,
-        note: `${item.lead_days} day lead time`,
+        // Use item.name || item.id || `item-${index}` to guarantee uniqueness
+        id: `backend-${item.name || item.id || index}`,
+        name: item.name || `Opportunity ${index + 1}`,
+        type: TYPE_LABELS[item.type] || item.type || "Buyer",
+        km: Number(item.distance_km || 10),
+        cap: `${Number(item.capacity_t || 100).toLocaleString("en-KE")} t/week`,
+        price: `KES ${Number(item.price_kes_kg || 50).toLocaleString("en-KE")}/kg`,
+        note: `${item.lead_days || 1} day lead time`,
         x: 12 + (index % 4) * 24,
         y: 18 + Math.floor(index / 4) * 28,
       }));
