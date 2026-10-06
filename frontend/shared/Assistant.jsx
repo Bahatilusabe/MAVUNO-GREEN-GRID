@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Send, Sprout, Bot, User } from "lucide-react";
 import { PROMPTS } from "./data";
 
-export default function Assistant({ className = "" }) {
+export default function Assistant({ className = "", selectedPin = null }) {
   const [msgs, setMsgs] = useState([
     { from: "ai", text: "I'm here to help you make better decisions, reduce loss and improve your farm." }
   ]);
@@ -21,7 +21,11 @@ export default function Assistant({ className = "" }) {
       const response = await fetch("/api/v1/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: t }),
+        body: JSON.stringify({
+          message: t,
+          lat: selectedPin?.lat,
+          lng: selectedPin?.lng,
+        }),
       });
       const data = await response.json();
       if (!response.ok || data.status !== "success") {

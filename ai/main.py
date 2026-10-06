@@ -45,17 +45,19 @@ class ChatQuery(BaseModel):
 def chat_endpoint(query: ChatQuery):
     """Answer a farmer question with live weather context included."""
     weather = get_weather(query.lat, query.lng)
+    location_label = "at the selected farm location" if query.lat else "in your region"
     messages = [
         {
             "role": "system",
             "content": (
-                "You are MAVUNO AI, an expert agricultural and resource assistant "
-                "for MAVUNO Green Grid in Kenya. You help farmers manage crop "
+                "You are MAVUNO AI, an expert agricultural and logistics assistant "
+                "for MAVUNO Green Grid in Kenya. You help smallholder farmers manage crop "
                 "surpluses, coordinate with buyers, cold storage, and transport. "
-                f"Current local weather at the farmer's location: "
+                f"Current local weather {location_label}: "
                 f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
-                "Incorporate this weather context into your advice if relevant. "
-                "Keep answers concise, practical, and tailored to smallholder farmers."
+                "Integrate this weather naturally into your advice without mentioning "
+                "code, APIs, or missing GPS data. Keep answers concise, practical, "
+                "card-style, and tailored to smallholder farmers."
             ),
         },
         {"role": "user", "content": query.message},
@@ -64,14 +66,7 @@ def chat_endpoint(query: ChatQuery):
         response = call_nvidia(messages)
         return {"status": "success", "reply": response}
     except Exception as error:
-        print(f"MAVUNO chat request failed ({type(error).__name__}): {error}")
-        return {
-            "status": "error",
-            "reply": (
-                "I'm having trouble connecting to my AI core right now. "
-                "Please check your surplus risk watch and local storage options."
-            ),
-        }
+        return {"status": "error", "message": str(error)}
 
 
 @app.get("/api/v1/opportunities")
