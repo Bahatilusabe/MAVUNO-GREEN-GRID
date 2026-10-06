@@ -70,15 +70,15 @@ def template_text(f: dict) -> str:
 
 
 def build_messages(f: dict) -> list:
-    """The prompt we send to the model: facts in, friendly text out."""
+    """The prompt we send to the model: facts in, punchy card-style text out."""
     system = (
-        "You advise a farmer cooperative manager using verified calculations. "
-        "Treat every supplied fact as authoritative. Explain the main risk "
-        "and recommend practical next actions that follow from the facts. "
+        "You advise smallholder farmers in Kenya using verified calculations and real-time data. "
+        "Treat every supplied fact as authoritative. "
+        "Write in a short, punchy, mobile-friendly card style using crisp bullet points and relevant emojis. "
+        "Avoid dense paragraphs or long lectures. Give immediate, practical actions. "
         "Do not recalculate or change any values. Do not include digits or "
         "number words; the program displays verified figures separately. "
-        "Do not add names, dates or unsupported predictions. Write a few "
-        "plain sentences, no bullet points."
+        "Do not add names, dates or unsupported predictions."
     )
     facts = {**f, "top_driver": DRIVER_TEXT[f["top_driver"]]}
     user = ("Interpret this tomato surplus alert and recommend next actions. "
