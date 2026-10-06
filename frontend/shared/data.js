@@ -80,9 +80,11 @@ export const PROMPTS = [
   "What's the weather forecast?",
 ];
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
+
 export async function fetchSurplusAlerts() {
   try {
-    const response = await fetch("http://localhost:8001/api/v1/surplus-alerts");
+    const response = await fetch(`${API_URL}/surplus-alerts`);
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }
@@ -95,14 +97,13 @@ export async function fetchSurplusAlerts() {
 
 export async function fetchOpportunities() {
   try {
-    const response = await fetch("/api/v1/opportunities");
+    const response = await fetch(`${API_URL}/opportunities`);
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }
-    const json = await response.json();
-    return json.status === "success" && Array.isArray(json.data) ? json.data : [];
-  } catch (error) {
-    console.error("Failed to fetch opportunities from backend:", error);
-    return [];
+    return await response.json();
+  } catch (err) {
+    console.error("Failed to fetch opportunities from backend, falling back to static data:", err);
+    return OPPS; 
   }
 }

@@ -1,4 +1,4 @@
-import { query } from "../../db/pool.js";
+import { getConnection } from "../../db/pool.js";
 import { HttpError } from "../../utils/errors.js";
 
 const COLS = `id, kind, icon, tone, title, body, action_to AS "actionTo", unread, created_at AS "createdAt"`;
