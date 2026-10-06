@@ -2,6 +2,8 @@
 MAVUNO-X FastAPI Backend
 Run this server with: python main.py
 """
+from typing import Optional
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,6 +19,7 @@ from pipeline.brain_schema import build_situation
 from explanations.explainer import explain_alert
 from matching.matcher import OPTIONS
 from pipeline.run_pipeline import CAPACITY_T
+from weather.weather_client import get_weather
 
 app = FastAPI(title="MAVUNO-X AI API")
 app.add_middleware(
@@ -34,21 +37,25 @@ app.add_middleware(
 
 class ChatQuery(BaseModel):
     message: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 @app.post("/api/v1/chat")
 def chat_endpoint(query: ChatQuery):
-    """Answer a farmer question with the NVIDIA-hosted MAVUNO assistant."""
+    """Answer a farmer question with live weather context included."""
+    weather = get_weather(query.lat, query.lng)
     messages = [
         {
             "role": "system",
             "content": (
                 "You are MAVUNO AI, an expert agricultural and resource assistant "
                 "for MAVUNO Green Grid in Kenya. You help farmers manage crop "
-                "surpluses, coordinate with buyers, cold storage, processors, and "
-                "transport, and reduce food waste. Keep answers concise, practical, "
-                "and tailored to smallholder farmers. Do not invent farm-specific "
-                "facts that were not provided."
+                "surpluses, coordinate with buyers, cold storage, and transport. "
+                f"Current local weather at the farmer's location: "
+                f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
+                "Incorporate this weather context into your advice if relevant. "
+                "Keep answers concise, practical, and tailored to smallholder farmers."
             ),
         },
         {"role": "user", "content": query.message},
@@ -86,14 +93,15 @@ def get_opportunities():
 
 
 @app.get("/api/v1/surplus-alerts")
-def get_alerts():
+def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
     """
-    Builds the situation, asks the NVIDIA model to plan 12-week cold storage,
-    and generates natural language explanations for high-risk weeks.
+    Builds the situation for the selected map coordinates, asks the NVIDIA model 
+    to plan storage, and generates natural language explanations.
     """
-    situation = build_situation()
+    # 1. We will pass the coordinates into build_situation
+    situation = build_situation(lat, lng)
     
-    # 3. Ask the NVIDIA model to generate the multi-week plan
+    # 2. Ask the NVIDIA model to generate the multi-week plan
     result = think(situation)
     decision = result["decision"]
     

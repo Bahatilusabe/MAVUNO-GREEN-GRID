@@ -21,6 +21,7 @@ from risk.risk_assessor import SHELF_LIFE_DAYS, ALERT_THRESHOLD, add_risk
 from matching.matcher import OPTIONS, score_options
 from optimization.optimizer import allocate
 from pipeline.run_pipeline import CAPACITY_T
+from weather.weather_client import get_weather  
 # ---------------------------
 
 TOL_T = 0.5   # tonnes of rounding slack when checking the model's sums
@@ -45,10 +46,14 @@ DECISION_FORMAT = """{
 
 
 # ---------- IN: the situation ----------
-def build_situation() -> dict:
+def build_situation(lat: float = None, lng: float = None) -> dict:
     """Bundle everything we know into one JSON-friendly dict."""
     options = OPTIONS.copy()
     options["capacity_t_per_week"] = options["name"].map(CAPACITY_T)
+    
+    # Fetch live weather for the farmer's map pin!
+    current_weather = get_weather(lat, lng)
+    
     return {
         "crop": "tomato",
         "cohorts": SAMPLE_COHORTS.to_dict("records"),
@@ -58,6 +63,7 @@ def build_situation() -> dict:
                         "shelf_life_days": SHELF_LIFE_DAYS,
                         "alert_threshold": ALERT_THRESHOLD},
         "storage": dict(STORAGE),
+        "weather": current_weather,  # <-- NEW
     }
 
 
@@ -66,7 +72,10 @@ def reference_decision(situation: dict) -> dict:
     """What the math alone would decide. Same format the model must use."""
     cohorts = pd.DataFrame(situation["cohorts"])
     options = pd.DataFrame(situation["options"])
-    forecast = add_risk(forecast_surplus(cohorts, situation["weekly_demand_t"]))
+    forecast = add_risk(
+        forecast_surplus(cohorts, situation["weekly_demand_t"]),
+        situation.get("weather", {})
+    )
     scored = score_options(options)
     scored["capacity_t"] = scored["name"].map(
         dict(zip(options["name"], options["capacity_t_per_week"])))
