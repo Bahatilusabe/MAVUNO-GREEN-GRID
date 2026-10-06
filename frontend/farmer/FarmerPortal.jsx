@@ -122,4 +122,4 @@ export default function FarmerPortal({ initialView = "overview" }) {
       <div className="space-y-6">{content}</div>
     </Shell>
   );
-}
+}  

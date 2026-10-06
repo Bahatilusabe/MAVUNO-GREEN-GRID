@@ -23,17 +23,26 @@ export default function KpiGrid({ stats }) {
       "from delivered orders",
     ],
   ];
+
   return (
-    <div className="pp-kpis">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {kpis.map(([Icon, label, value, sub]) => (
-        <div key={label} className="pp-card pp-kpi">
-          <span className="pp-ico">
+        <div 
+          key={label} 
+          className="p-5 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center gap-4 transition-all hover:shadow-md"
+        >
+          <div className="p-3 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-100 text-green-700 shadow-2xs">
             <Icon aria-hidden="true" size={20} />
-          </span>
-          <div>
-            <small>{label}</small>
-            <strong>{value}</strong>
-            <small>{sub}</small>
+          </div>
+
+          <div className="min-w-0 space-y-0.5">
+            <small className="text-xs font-medium text-gray-500 block truncate">{label}</small>
+            <strong className="text-xl font-bold tracking-tight text-gray-900 block truncate">
+              {value}
+            </strong>
+            <small className="text-[11px] text-gray-400 font-medium block truncate pt-0.5">
+              {sub}
+            </small>
           </div>
         </div>
       ))}
