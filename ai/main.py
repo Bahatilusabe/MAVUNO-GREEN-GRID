@@ -28,10 +28,10 @@ def load_project_env() -> None:
             load_dotenv(candidate, override=False)
 
 
-# 1. Force FastAPI to load your NVIDIA_API_KEY from the correct project .env file
+# 1. Load NVIDIA_API_KEY etc. from the project .env (real env vars win)
 load_project_env()
 
-# 2. Import the actual AI Brain instead of the basic math pipeline
+# 2. Import the actual AI Brain
 from pipeline.brain import call_nvidia, think
 from pipeline.brain_schema import build_situation
 from explanations.explainer import explain_alert
@@ -40,17 +40,28 @@ from pipeline.run_pipeline import CAPACITY_T
 from weather.weather_client import get_weather
 
 app = FastAPI(title="MAVUNO-X AI API")
+
+_default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
+_extra_origins = [
+    o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=_default_origins + _extra_origins,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+def health():
+    """Liveness probe for Render / Docker."""
+    return {"ok": True}
 
 
 def detect_farmer_language(message: str) -> str:
@@ -160,30 +171,25 @@ def get_opportunities():
 @app.get("/api/v1/surplus-alerts")
 def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
     """
-    Builds the situation for the selected map coordinates, asks the NVIDIA model 
+    Builds the situation for the selected map coordinates, asks the NVIDIA model
     to plan storage, and generates natural language explanations.
     """
-    # 1. We will pass the coordinates into build_situation
     situation = build_situation(lat, lng)
-    
-    # 2. Ask the NVIDIA model to generate the multi-week plan
+
     result = think(situation)
     decision = result["decision"]
-    
-    # Grab the price and co2e dictionaries to calculate weekly metrics
+
     price = {o["name"]: o["price_kes_kg"] for o in situation["options"]}
     co2e = {o["name"]: o["co2e_per_t"] for o in situation["options"]}
-    
+
     alerts = []
-    
+
     for w in decision["weeks"]:
         if w["alert"]:
-            # Calculate this specific week's saved tonnes and revenue
             saved = sum(a["tonnes"] for a in w.get("allocations", []))
             revenue = sum(a["tonnes"] * 1000 * price[a["option"]] for a in w.get("allocations", []))
             co2e_kg = sum(a["tonnes"] * co2e[a["option"]] for a in w.get("allocations", []))
-            
-            # Format the data exactly how explanation.py expects it
+
             row_dict = {
                 "week": w["week"],
                 "surplus_ratio": w["surplus_t"] / w["supply_t"] if w["supply_t"] > 0 else 0,
@@ -194,29 +200,28 @@ def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
                 "revenue_kes": revenue,
                 "co2e_avoided_t": co2e_kg / 1000
             }
-            
-            # Get the AI natural language explanation
+
             explanation = explain_alert(row_dict)
-            
+
             alerts.append({
                 "week": w["week"],
                 "surplus_t": w["surplus_t"],
                 "risk": w["risk"],
                 "tonnes_saved": saved,
                 "tonnes_wasted": w["unallocated_t"],
-                "store_t": w.get("store_t", 0.0),       # Exposes the AI's storage decision
-                "release_t": w.get("release_t", 0.0),   # Exposes the AI's release decision
+                "store_t": w.get("store_t", 0.0),
+                "release_t": w.get("release_t", 0.0),
                 "revenue_kes": revenue,
                 "co2e_avoided_t": co2e_kg / 1000,
-                "ai_reasoning": w.get("reasoning", ""), # The model's short logic
+                "ai_reasoning": w.get("reasoning", ""),
                 "ai_explanation": explanation["text"],
                 "explanation_source": explanation["source"]
             })
-            
+
     return {
         "status": "success",
-        "ai_engine_used": result["source"], 
-        "global_impact": decision["summary"], # Include the overall 12-week metrics
+        "ai_engine_used": result["source"],
+        "global_impact": decision["summary"],
         "data": alerts
     }
 
@@ -243,16 +248,9 @@ async def text_to_speech(text: str = "", lang: str = "sw-KE"):
     await communicate.save(str(out_path))
     return FileResponse(out_path, media_type="audio/mpeg", filename=f"mavuno-{token}.mp3")
 
-if __name__ == "__main__":
-    port = 8010
-    try:
-        import socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind(("0.0.0.0", port))
-    except OSError as exc:
-        raise SystemExit(
-            f"Port {port} is already in use. Close the existing Python process or choose another port."
-        ) from exc
 
+if __name__ == "__main__":
+    # Render/Docker inject PORT; locally it falls back to 8010
+    port = int(os.getenv("PORT", "8010"))
     print(f"Starting MAVUNO-X AI API Server on port {port}...")
     uvicorn.run(app, host="0.0.0.0", port=port)

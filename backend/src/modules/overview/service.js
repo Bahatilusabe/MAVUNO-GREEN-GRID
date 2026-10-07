@@ -3,7 +3,40 @@ import { query } from "../../db/pool.js";
 const AI_SURPLUS_URL =
   process.env.AI_SURPLUS_URL || "http://localhost:8010/api/v1/surplus-alerts";
 
+const AI_TTL_MS = 10 * 60 * 1000;
+const aiCache = { at: 0, data: null, inflight: null };
+
+async function fetchAiSurplus() {
+  const res = await fetch(AI_SURPLUS_URL, { signal: AbortSignal.timeout(120_000) });
+  if (!res.ok) throw new Error(`AI backend returned HTTP ${res.status}`);
+  const json = await res.json();
+  if (json?.status !== "success") throw new Error("AI backend returned an error payload");
+  return {
+    alerts: Array.isArray(json.data) ? json.data : [],
+    globalImpact: json.global_impact ?? null,
+  };
+}
+
+// Never blocks: returns the cached value (possibly stale or null) and refreshes in the background
+function getAiSurplus() {
+  const fresh = aiCache.data && Date.now() - aiCache.at < AI_TTL_MS;
+  if (!fresh && !aiCache.inflight) {
+    aiCache.inflight = fetchAiSurplus()
+      .then((data) => {
+        aiCache.data = data;
+        aiCache.at = Date.now();
+      })
+      .catch((err) => console.warn("AI surplus service unavailable:", err.message))
+      .finally(() => {
+        aiCache.inflight = null;
+      });
+  }
+  return aiCache.data;
+}
+
 export async function getOverview(userId) {
+  const ai = getAiSurplus();
+
   const [farmsRes, cropsRes, notesRes] = await Promise.all([
     query(
       `SELECT COUNT(*) AS "farms", NVL(SUM(area_ha), 0) AS "areaHa"
@@ -49,39 +82,21 @@ export async function getOverview(userId) {
   const high = crops.filter((c) => c.risk === "high");
   const top = [...high].sort((a, b) => b.expectedKg - a.expectedKg)[0];
 
-  let aiAlerts = [];
-  let globalImpact = null;
-  try {
-    const aiResponse = await fetch(AI_SURPLUS_URL, {
-      signal: AbortSignal.timeout(3_000),
-    });
-    if (!aiResponse.ok) {
-      throw new Error(`AI backend returned HTTP ${aiResponse.status}`);
-    }
-    const aiJson = await aiResponse.json();
-    if (aiJson?.status === "success") {
-      aiAlerts = Array.isArray(aiJson.data) ? aiJson.data : [];
-      globalImpact = aiJson.global_impact ?? null;
-    }
-  } catch (error) {
-    console.warn("AI surplus service unavailable:", error.message);
-  }
+  const aiAlerts = ai?.alerts ?? [];
+  const globalImpact = ai?.globalImpact ?? null;
 
-  const atRiskKg =
-    aiAlerts.length > 0
-      ? Math.round(
-          aiAlerts.reduce(
-            (sum, a) => sum + Number(a.surplus_t || 0) * 1000 * Number(a.risk || 0),
-            0
-          )
-        )
-      : high.reduce((sum, c) => sum + c.expectedKg, 0);
+  // The AI models regional supply, so only its risk ratio is used here, never its tonnage.
+  const totalSurplusT = aiAlerts.reduce((s, a) => s + Number(a.surplus_t || 0), 0);
+  const weightedRisk =
+    totalSurplusT > 0
+      ? aiAlerts.reduce(
+          (s, a) => s + Number(a.surplus_t || 0) * Number(a.risk || 0),
+          0
+        ) / totalSurplusT
+      : null;
 
-  const alertSurplusKg = aiAlerts.reduce(
-    (sum, a) => sum + Number(a.surplus_t || 0) * 1000,
-    0
-  );
-  const surplusWeightedRisk = alertSurplusKg > 0 ? atRiskKg / alertSurplusKg : null;
+  const highKg = high.reduce((sum, c) => sum + c.expectedKg, 0);
+  const atRiskKg = Math.round(highKg * (weightedRisk ?? 1));
 
   return {
     stats: {
@@ -99,7 +114,7 @@ export async function getOverview(userId) {
           farmId: top.farmId,
           farm: top.farm,
           expectedKg: top.expectedKg,
-          exposedKg: Math.round(top.expectedKg * (surplusWeightedRisk ?? 1)),
+          exposedKg: Math.round(top.expectedKg * (weightedRisk ?? 1)),
         }
       : null,
     harvests: crops,
