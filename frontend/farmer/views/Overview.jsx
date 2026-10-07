@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Sprout, ShieldCheck, MapPin, Phone, Mail, ArrowRight } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
+import { useOverview } from "../../src/hooks/useOverview";
 import StatCards from "./overview/StatCards";
 import RiskWatch from "./overview/RiskWatch";
 import FarmsTable from "./overview/FarmsTable";
@@ -8,11 +9,13 @@ import TodayRecs from "./overview/TodayRecs";
 import HarvestOutlook from "./overview/HarvestOutlook";
 import GridActivity from "./overview/GridActivity";
 import EnvImpact from "./overview/EnvImpact";
+import { toRiskModel } from "./overview/adapter";
 
 const EXPOSED_SHARE = 0.8;
 
 export default function Overview({ farms, go, onOpenFarm }) {
-  const m = useMemo(() => {
+  const { data, loading, error } = useOverview();
+  const mockModel = useMemo(() => {
     const high = farms.filter((f) => f.risk === "High");
     return {
       count: farms.length,
@@ -21,6 +24,7 @@ export default function Overview({ farms, go, onOpenFarm }) {
       topFarm: high[0],
     };
   }, [farms]);
+  const m = { ...mockModel, ...toRiskModel(data) };
 
   if (!farms.length) {
     return (
@@ -36,6 +40,16 @@ export default function Overview({ farms, go, onOpenFarm }) {
 
   return (
     <div className="space-y-6 pb-12">
+      {loading && (
+        <p className="text-xs text-gray-500" role="status">
+          Loading live risk data…
+        </p>
+      )}
+      {error && (
+        <p className="text-xs text-amber-700" role="status">
+          Live risk data is unavailable. Showing the latest local farm data.
+        </p>
+      )}
       
       {/* Profile Summary Strip (Added to Overview) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Sprout, Bot, User, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Send, Sprout, Bot, User, Mic, MicOff, Volume2, VolumeX, Lightbulb } from "lucide-react";
 import { PROMPTS } from "./data";
 
 const GREETING_PATTERNS = [
@@ -355,7 +355,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
           
           {/* Awareness Tip */}
           <div className="flex items-start gap-2 p-3 bg-brand-50/70 rounded-xl border border-brand-100 shadow-sm">
-            <span className="text-brand-600 text-base">💡</span>
+            <Lightbulb className="text-brand-600 shrink-0" size={18} aria-hidden="true" />
             <p className="text-sm text-muted-foreground leading-relaxed">
               <strong className="text-foreground">Did you know?</strong> You can chat directly with this AI assistant. Type your own questions below, or try one of these to get started:
             </p>

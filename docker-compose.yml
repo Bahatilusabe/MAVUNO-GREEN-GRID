@@ -30,7 +30,10 @@ services:
       DB_USER: mavuno
       DB_PASSWORD: ${DB_PASSWORD:-mavuno}
       DB_CONNECTION_STRING: oracle:1521/FREEPDB1
-      AI_SURPLUS_URL: ${AI_SURPLUS_URL:-http://host.docker.internal:8000/api/v1/surplus-alerts}
+      AI_BASE_URL: http://host.docker.internal:8010/api/v1
+      AI_SURPLUS_URL: http://host.docker.internal:8010/api/v1/surplus-alerts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "4000:4000"
     depends_on:
