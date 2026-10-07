@@ -1,23 +1,30 @@
-import { getConnection } from "../../db/pool.js";
+import { query } from "../../db/pool.js";
 
-const AI_SURPLUS_URL = process.env.AI_SURPLUS_URL
-  || "http://localhost:8000/api/v1/surplus-alerts";
+const AI_SURPLUS_URL =
+  process.env.AI_SURPLUS_URL || "http://localhost:8000/api/v1/surplus-alerts";
 
 export async function getOverview(userId) {
   const [farmsRes, cropsRes] = await Promise.all([
     query(
-      `SELECT count(*) AS "farms", COALESCE(sum(area_ha), 0) AS "areaHa" 
-       FROM farms 
-       WHERE owner_id = :1`, 
+      `SELECT COUNT(*) AS "farms", NVL(SUM(area_ha), 0) AS "areaHa"
+         FROM farms
+        WHERE owner_id = :1`,
       [userId]
     ),
     query(
-      `SELECT c.id, c.name, c.stage, c.expected_kg AS "expectedKg", c.expected_harvest AS "expectedHarvest", c.risk,
-              f.id AS "farmId", f.name AS "farm"
-       FROM crops c JOIN farms f ON f.id = c.farm_id
-       WHERE f.owner_id = :1
-       ORDER BY c.expected_harvest NULLS LAST`,
-      [userId],
+      `SELECT c.id AS "id",
+              c.name AS "name",
+              c.stage AS "stage",
+              c.expected_kg AS "expectedKg",
+              TO_CHAR(c.expected_harvest, 'YYYY-MM-DD') AS "expectedHarvest",
+              c.risk AS "risk",
+              f.id AS "farmId",
+              f.name AS "farm"
+         FROM crops c
+         JOIN farms f ON f.id = c.farm_id
+        WHERE f.owner_id = :1
+        ORDER BY c.expected_harvest NULLS LAST`,
+      [userId]
     ),
   ]);
 
@@ -29,7 +36,7 @@ export async function getOverview(userId) {
   let globalImpact = null;
   try {
     const aiResponse = await fetch(AI_SURPLUS_URL, {
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(3_000),
     });
     if (!aiResponse.ok) {
       throw new Error(`AI backend returned HTTP ${aiResponse.status}`);
@@ -40,25 +47,24 @@ export async function getOverview(userId) {
       globalImpact = aiJson.global_impact ?? null;
     }
   } catch (error) {
-    console.error(
-      "Warning: Could not connect to Python AI backend from Express service:",
-      error.message,
-    );
+    console.warn("AI surplus service unavailable:", error.message);
   }
 
-  const atRiskKg = aiAlerts.length > 0
-    ? Math.round(aiAlerts.reduce(
-      (sum, alert) => sum + Number(alert.surplus_t || 0) * 1000 * Number(alert.risk || 0),
-      0,
-    ))
-    : high.reduce((sum, crop) => sum + crop.expectedKg, 0);
+  const atRiskKg =
+    aiAlerts.length > 0
+      ? Math.round(
+          aiAlerts.reduce(
+            (sum, a) => sum + Number(a.surplus_t || 0) * 1000 * Number(a.risk || 0),
+            0
+          )
+        )
+      : high.reduce((sum, c) => sum + c.expectedKg, 0);
+
   const alertSurplusKg = aiAlerts.reduce(
-    (sum, alert) => sum + Number(alert.surplus_t || 0) * 1000,
-    0,
+    (sum, a) => sum + Number(a.surplus_t || 0) * 1000,
+    0
   );
-  const surplusWeightedRisk = alertSurplusKg > 0
-    ? atRiskKg / alertSurplusKg
-    : null;
+  const surplusWeightedRisk = alertSurplusKg > 0 ? atRiskKg / alertSurplusKg : null;
 
   return {
     stats: {
@@ -71,13 +77,13 @@ export async function getOverview(userId) {
     },
     topRisk: top
       ? {
-        cropId: top.id,
-        crop: top.name,
-        farmId: top.farmId,
-        farm: top.farm,
-        expectedKg: top.expectedKg,
-        exposedKg: Math.round(top.expectedKg * (surplusWeightedRisk ?? 1)),
-      }
+          cropId: top.id,
+          crop: top.name,
+          farmId: top.farmId,
+          farm: top.farm,
+          expectedKg: top.expectedKg,
+          exposedKg: Math.round(top.expectedKg * (surplusWeightedRisk ?? 1)),
+        }
       : null,
     harvests: crops,
     aiSurplusAlerts: aiAlerts,
