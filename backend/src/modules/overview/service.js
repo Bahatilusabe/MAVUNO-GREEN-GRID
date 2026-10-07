@@ -1,10 +1,10 @@
 import { query } from "../../db/pool.js";
 
 const AI_SURPLUS_URL =
-  process.env.AI_SURPLUS_URL || "http://localhost:8000/api/v1/surplus-alerts";
+  process.env.AI_SURPLUS_URL || "http://localhost:8010/api/v1/surplus-alerts";
 
 export async function getOverview(userId) {
-  const [farmsRes, cropsRes] = await Promise.all([
+  const [farmsRes, cropsRes, notesRes] = await Promise.all([
     query(
       `SELECT COUNT(*) AS "farms", NVL(SUM(area_ha), 0) AS "areaHa"
          FROM farms
@@ -24,6 +24,23 @@ export async function getOverview(userId) {
          JOIN farms f ON f.id = c.farm_id
         WHERE f.owner_id = :1
         ORDER BY c.expected_harvest NULLS LAST`,
+      [userId]
+    ),
+    query(
+      `SELECT id AS "id",
+              kind AS "kind",
+              icon AS "icon",
+              tone AS "tone",
+              title AS "title",
+              body AS "body",
+              action_to AS "actionTo",
+              action_label AS "actionLabel",
+              unread AS "unread",
+              created_at AS "createdAt"
+         FROM notifications
+        WHERE user_id = :1 AND dismissed_at IS NULL
+        ORDER BY created_at DESC
+        FETCH FIRST 6 ROWS ONLY`,
       [userId]
     ),
   ]);
@@ -86,6 +103,7 @@ export async function getOverview(userId) {
         }
       : null,
     harvests: crops,
+    activity: notesRes.rows,
     aiSurplusAlerts: aiAlerts,
   };
 }
