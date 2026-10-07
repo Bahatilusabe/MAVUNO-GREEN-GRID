@@ -80,7 +80,7 @@ export const PROMPTS = [
   "What's the weather forecast?",
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export async function fetchWeatherForecast({ lat = -0.5186, lon = 37.3675 } = {}) {
   const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });

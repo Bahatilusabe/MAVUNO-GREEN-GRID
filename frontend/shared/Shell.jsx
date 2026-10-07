@@ -201,7 +201,7 @@ export default function Shell({
           </button>
 
           {/* Assistant Slide-over Drawer */}
-          <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-white border-l border-gray-200 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+          <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[30rem] max-w-[92vw] bg-white border-l border-gray-200 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
             chat ? "translate-x-0" : "translate-x-full"
           }`}>
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">

@@ -5,6 +5,9 @@ and enforces rules using the assembly layer.
 
 Run: python brain.py
 """
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import json
 import os
 import contextlib
@@ -154,7 +157,10 @@ if __name__ == "__main__":
 
     good_choices = {"weeks": [
         {"week": w["week"], "allocations": w["allocations"],
-         "unallocated_t": w["unallocated_t"], "reasoning": "test"}
+         "unallocated_t": w["unallocated_t"],
+         "store_t": w.get("store_t", 0.0),
+         "release_t": w.get("release_t", 0.0),
+         "reasoning": "test"}
         for w in reference["weeks"]], "warnings": []}
     good = json.dumps(good_choices)
 

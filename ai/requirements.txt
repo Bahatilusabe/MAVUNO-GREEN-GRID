@@ -1,0 +1,10 @@
+# Runtime dependencies for the MAVUNO AI service and decision pipeline
+fastapi
+uvicorn
+python-dotenv
+openai
+json-repair
+numpy
+pandas
+requests
+edge-tts

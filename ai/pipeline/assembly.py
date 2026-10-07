@@ -138,8 +138,7 @@ def assemble(situation: dict, reference: dict, out: dict) -> dict:
         allocations = {name: fresh_alloc[name] + release_alloc[name]
                        for name in capacities}
         new["allocations"] = [{"option": name, "tonnes": tonnes}
-                              for name, tonnes in allocations.items()
-                              if tonnes > 1e-9]
+                              for name, tonnes in allocations.items()]
         new["unallocated_t"] = max(fresh_overflow - store, 0.0)
         new["store_t"] = store
         new["release_t"] = release

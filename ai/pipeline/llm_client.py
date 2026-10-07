@@ -2,6 +2,24 @@ import json
 import os
 import re
 import time
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+def load_project_env() -> None:
+    """Load the repo's .env files from all valid project locations."""
+    candidates = [
+        Path(__file__).resolve().parent / ".env",
+        Path(__file__).resolve().parents[1] / ".env",
+        Path(__file__).resolve().parents[1] / "pipeline" / ".env",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            load_dotenv(candidate, override=False)
+
+
+load_project_env()
 
 # Base configuration
 NVIDIA_BASE_URL = os.environ.get("LLM_BASE_URL", "https://integrate.api.nvidia.com/v1")
@@ -72,15 +90,23 @@ def call_nvidia(messages: list) -> str:
 
 
 def parse_json(text: str) -> dict:
-    """Pull the JSON object out of the model's reply. Ignores  blocks
-    and ``` fences. If it has a small syntax slip (missing comma...), try the
-    optional json-repair package; the checker still validates the result."""
-    text = re.sub(r".*?", "", text, flags=re.S)
-    text = re.sub(r"```(?:json)?", "", text)
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0:
+    """Pull the JSON object out of the model's reply. Ignores fenced blocks.
+    If it has a small syntax slip (missing comma...), try the optional
+    json-repair package; the checker still validates the result."""
+    if not isinstance(text, str):
+        raise ValueError("reply is not text")
+
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.I)
+        cleaned = re.sub(r"\s*```\s*$", "", cleaned)
+
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start < 0 or end < start:
         raise ValueError("no JSON object found in the reply")
-    candidate = text[start:end + 1] if end > start else text[start:]
+
+    candidate = cleaned[start:end + 1]
     try:
         return json.loads(candidate)
     except json.JSONDecodeError as first_error:

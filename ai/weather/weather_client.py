@@ -1,6 +1,24 @@
 import os
 import time
+from pathlib import Path
+
 import requests
+from dotenv import load_dotenv
+
+
+def load_project_env() -> None:
+    """Load the repo's .env files from all valid project locations."""
+    candidates = [
+        Path(__file__).resolve().parents[1] / ".env",
+        Path(__file__).resolve().parents[1] / "pipeline" / ".env",
+        Path(__file__).resolve().parents[2] / ".env",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            load_dotenv(candidate, override=False)
+
+
+load_project_env()
 
 OPENWEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
 
