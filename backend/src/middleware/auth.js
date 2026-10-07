@@ -15,8 +15,14 @@ export async function requireAuth(req, _res, next) {
     throw new HttpError(401, "Invalid or expired token");
   }
 
+  const userId = payload.sub ?? payload.id;
+  if (!userId) throw new HttpError(401, "Invalid token payload");
+
   // checked on every request so a suspended or deleted user is locked out immediately
-  const { rows } = await query("SELECT id, role, status FROM users WHERE id = $1", [payload.sub]);
+  const { rows } = await query(
+    `SELECT id AS "id", role AS "role", status AS "status" FROM users WHERE id = :1`,
+    [userId]
+  );
   const user = rows[0];
   if (!user) throw new HttpError(401, "Account not found");
   if (user.status === "suspended") throw new HttpError(403, "Account suspended");
@@ -26,6 +32,9 @@ export async function requireAuth(req, _res, next) {
 }
 
 export const requireRole = (...roles) => (req, _res, next) => {
-  if (!roles.includes(req.user?.role)) throw new HttpError(403, "Forbidden");
+  const allowed = roles.map((r) => String(r).toLowerCase());
+  if (!allowed.includes(String(req.user?.role).toLowerCase())) {
+    throw new HttpError(403, "Forbidden");
+  }
   next();
 };

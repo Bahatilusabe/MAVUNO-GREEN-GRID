@@ -1,0 +1,32 @@
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_ADMIN_PASSWORD:-change_me}
+      APP_USER: mavuno
+      APP_USER_PASSWORD: mavuno
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./database:/container-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      PORT: 4000
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: ${JWT_SECRET:-change_me_dev_secret}
+      DB_USER: mavuno
+      DB_PASSWORD: mavuno
+      DB_CONNECTION_STRING: oracle:1521/FREEPDB1
+    ports:
+      - "4000:4000"
+    depends_on:
+      oracle:
+        condition: service_healthy

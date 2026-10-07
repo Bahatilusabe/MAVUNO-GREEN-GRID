@@ -11,26 +11,24 @@ if (config.NODE_ENV === "production") {
 const password = process.env.SEED_PASSWORD || "Password123!";
 const hash = await bcrypt.hash(password, 10);
 
-// Initialize Oracle Pool
 await initDb();
 const connection = await getClient();
 
 try {
-  // Oracle doesn't support TRUNCATE CASCADE in one command, so we delete in reverse dependency order
+  // Delete in reverse dependency order
   const tables = ["notifications", "match_requests", "crops", "farms", "partners", "users"];
   for (const table of tables) {
     await connection.execute(`DELETE FROM ${table}`);
   }
 
-  // Helper to insert user and return generated UUID via BIND_OUT
   const addUser = async (name, email, role, county) => {
     const result = await connection.execute(
-      `INSERT INTO users (name, email, password_hash, role, county) 
-       VALUES (:name, :email, :hash, :role, :county) 
+      `INSERT INTO users (name, email, password_hash, role, county)
+       VALUES (:name, :email, :hash, :role, :county)
        RETURNING id INTO :out_id`,
       {
         name, email, hash, role, county,
-        out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+        out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING },
       }
     );
     return result.outBinds.out_id[0];
@@ -48,26 +46,26 @@ try {
 
   for (const [name, area, water, irrigation, lat, lng, crop] of farms) {
     const result = await connection.execute(
-      `INSERT INTO farms (owner_id, name, county, area_ha, water_source, irrigation, lat, lng) 
-       VALUES (:owner_id, :name, 'Kirinyaga', :area, :water, :irrigation, :lat, :lng) 
+      `INSERT INTO farms (owner_id, name, county, area_ha, water_source, irrigation, lat, lng)
+       VALUES (:owner_id, :name, 'Kirinyaga', :area, :water, :irrigation, :lat, :lng)
        RETURNING id INTO :out_id`,
       {
         owner_id: samuel, name, area, water, irrigation, lat, lng,
-        out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING }
+        out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING },
       }
     );
     const farmId = result.outBinds.out_id[0];
-    
+
     const [cropName, cropStage, cropKg, cropHarvest, cropRisk] = crop;
     await connection.execute(
-      `INSERT INTO crops (farm_id, name, stage, expected_kg, expected_harvest, risk) 
+      `INSERT INTO crops (farm_id, name, stage, expected_kg, expected_harvest, risk)
        VALUES (:1, :2, :3, :4, TO_DATE(:5, 'YYYY-MM-DD'), :6)`,
       [farmId, cropName, cropStage, cropKg, cropHarvest, cropRisk]
     );
   }
 
   await connection.execute(
-    `INSERT INTO partners (user_id, name, type, county, price_per_kg, capacity_kg, status) 
+    `INSERT INTO partners (user_id, name, type, county, price_per_kg, capacity_kg, status)
      VALUES (:1, 'Kagio Juice Processors', 'processor', 'Kirinyaga', 20, 2000, 'approved')`,
     [kagioUser]
   );
@@ -83,23 +81,19 @@ try {
 
   for (const [kind, icon, tone, title, body, to, label, unread, hours] of notes) {
     await connection.execute(
-      `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, unread, created_at) 
-       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, SYSTIMESTAMP - NUMTODSINTERVAL(:9, 'HOUR'))`,
-      [samuel, kind, icon, tone, title, body, to, unread ? 1 : 0, hours]
+      `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, action_label, unread, created_at)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, SYSTIMESTAMP - NUMTODSINTERVAL(:10, 'HOUR'))`,
+      [samuel, kind, icon, tone, title, body, to, label, unread ? 1 : 0, hours]
     );
   }
 
-  // Oracle native commit
   await connection.commit();
   console.log(`Seeded. Logins: admin@mavuno.test, samuel@mavuno.test, kagio@mavuno.test (password: ${password})`);
 } catch (err) {
-  // Oracle native rollback
   await connection.rollback();
   console.error(err);
   process.exitCode = 1;
 } finally {
-  if (connection) {
-    await connection.close();
-  }
+  if (connection) await connection.close();
   process.exit(process.exitCode || 0);
 }

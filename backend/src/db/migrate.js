@@ -2,70 +2,66 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { initDb, getClient } from "./pool.js";
+import { splitSql } from "./splitSql.js";
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "migrations");
+const TABLE = "schema_migrations";
 
-// Initialize Oracle Pool
-await initDb();
-const connection = await getClient();
-
+let connection;
 try {
-  // 1. Oracle doesn't support 'IF NOT EXISTS', so we catch the "already exists" error (ORA-00955)
+  await initDb();
+  connection = await getClient();
+
   try {
     await connection.execute(`
-      CREATE TABLE _migrations (
-        name VARCHAR2(255) PRIMARY KEY, 
+      CREATE TABLE ${TABLE} (
+        name VARCHAR2(255) PRIMARY KEY,
         applied_at TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL
       )
     `);
   } catch (err) {
-    if (err.errorNum !== 955) throw err; // Ignore "name already used by existing object"
+    if (err.errorNum !== 955) throw err;
   }
 
-  // 2. Get list of already applied migrations
-  const result = await connection.execute("SELECT name FROM _migrations");
-  // Note: Oracle returns column names in uppercase by default (NAME)
-  const done = new Set(result.rows.map((r) => r.NAME || r.name)); 
-  
+  const result = await connection.execute(`SELECT name FROM ${TABLE}`);
+  const done = new Set(result.rows.map((r) => (Array.isArray(r) ? r[0] : r.NAME)));
+
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
+  console.log("Found:", files, "| already applied:", [...done]);
+  if (files.length === 0) throw new Error("No .sql files found in " + dir);
 
   for (const file of files) {
-    if (done.has(file)) continue;
-    
-    const sqlContent = await readFile(path.join(dir, file), "utf8");
-    
-    // 3. Oracle CANNOT execute multiple statements in one string. We must split them.
-    const statements = sqlContent
-      .split(/(?:;|\/)\s*(?:\r?\n|$)/)
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0);
+    if (done.has(file)) {
+      console.log("skip", file);
+      continue;
+    }
+
+    const statements = splitSql(await readFile(path.join(dir, file), "utf8"));
+    console.log(`${file}: ${statements.length} statements`);
 
     try {
-      // Oracle starts transactions automatically, no need for "BEGIN"
-      for (const stmt of statements) {
-        await connection.execute(stmt);
+      for (const [i, stmt] of statements.entries()) {
+        try {
+          await connection.execute(stmt);
+        } catch (err) {
+          console.error(`Statement ${i + 1} failed:\n${stmt.slice(0, 400)}\n`);
+          throw err;
+        }
       }
-      
-      // 4. Record migration using Oracle's bind syntax (:1 instead of $1)
-      await connection.execute(
-        "INSERT INTO _migrations (name) VALUES (:1)", 
-        [file]
-      );
-      
-      // 5. Native Oracle commit
+      await connection.execute(`INSERT INTO ${TABLE} (name) VALUES (:1)`, [file]);
       await connection.commit();
       console.log("applied", file);
     } catch (err) {
-      // Native Oracle rollback
       await connection.rollback();
       console.error("failed", file, "-", err.message);
       process.exitCode = 1;
       break;
     }
   }
+} catch (err) {
+  console.error("migrate error:", err);
+  process.exitCode = 1;
 } finally {
-  if (connection) {
-    await connection.close();
-  }
+  if (connection) await connection.close();
   process.exit(process.exitCode || 0);
 }
