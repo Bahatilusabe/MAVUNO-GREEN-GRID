@@ -110,7 +110,12 @@ export async function fetchOpportunities() {
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }
-    return await response.json();
+    const payload = await response.json();
+    if (Array.isArray(payload)) return payload;
+    if (payload?.status === "success" && Array.isArray(payload.data)) {
+      return payload.data;
+    }
+    throw new Error("Backend returned an invalid opportunities payload");
   } catch (err) {
     console.error("Failed to fetch opportunities from backend, falling back to static data:", err);
     return OPPS; 

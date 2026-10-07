@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req.body),
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(75_000),
     });
     const body = await r.json().catch(() => ({}));
     if (!r.ok) return res.status(502).json({ error: "AI service error", detail: body });

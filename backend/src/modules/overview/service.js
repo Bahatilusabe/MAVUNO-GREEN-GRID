@@ -1,7 +1,7 @@
 import { query } from "../../db/pool.js";
 
 const AI_SURPLUS_URL =
-  process.env.AI_SURPLUS_URL || "http://localhost:8000/api/v1/surplus-alerts";
+  process.env.AI_SURPLUS_URL || "http://localhost:8010/api/v1/surplus-alerts";
 
 export async function getOverview(userId) {
   const [farmsRes, cropsRes] = await Promise.all([
@@ -36,7 +36,7 @@ export async function getOverview(userId) {
   let globalImpact = null;
   try {
     const aiResponse = await fetch(AI_SURPLUS_URL, {
-      signal: AbortSignal.timeout(3_000),
+      signal: AbortSignal.timeout(120_000),
     });
     if (!aiResponse.ok) {
       throw new Error(`AI backend returned HTTP ${aiResponse.status}`);

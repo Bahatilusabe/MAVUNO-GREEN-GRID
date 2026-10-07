@@ -1,0 +1,39 @@
+services:
+  db:
+    image: gvenzl/oracle-free:latest
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_ADMIN_PASSWORD:-change_me}
+      APP_USER: ${DB_USER:-mavuno}
+      APP_USER_PASSWORD: ${DB_PASSWORD:-mavuno}
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: .
+    environment:
+      PORT: ${PORT:-4000}
+      NODE_ENV: ${NODE_ENV:-development}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-change_me_dev_secret}
+      DB_USER: ${DB_USER:-mavuno}
+      DB_PASSWORD: ${DB_PASSWORD:-mavuno}
+      DB_CONNECTION_STRING: db:1521/FREEPDB1
+      AI_BASE_URL: http://host.docker.internal:8010/api/v1
+      AI_SURPLUS_URL: http://host.docker.internal:8010/api/v1/surplus-alerts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  oracle-data:

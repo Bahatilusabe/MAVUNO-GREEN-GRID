@@ -13,6 +13,8 @@ import storageRoutes from "./modules/storage/routes.js";
 import weatherRoutes from "./modules/weather/routes.js";
 import overviewRoutes from "./modules/overview/routes.js";
 import chatRoutes from "./modules/chat/routes.js";
+import opportunityRoutes from "./modules/opportunities/routes.js";
+import surplusAlertRoutes from "./modules/surplus-alerts/routes.js";
 
 export function createApp() {
   const app = express();
@@ -68,21 +70,8 @@ export function createApp() {
   v1Router.use("/weather", weatherRoutes);
   v1Router.use("/overview", overviewRoutes);
   v1Router.use("/chat", chatRoutes);
-
-  // Placeholder data until real modules exist
-  v1Router.get("/opportunities", (req, res) => {
-    res.json([
-      { id: 1, name: "Nairobi Fresh Markets", type: "buyer", distance_km: 68, capacity_t: 1500, price_kes_kg: 28, lead_days: 1 },
-      { id: 2, name: "Kagio Juice Processors", type: "processor", distance_km: 20, capacity_t: 2000, price_kes_kg: 20, lead_days: 2 },
-      { id: 3, name: "Kirinyaga Cold Storage", type: "cold_store", distance_km: 10, capacity_t: 5000, price_kes_kg: 12, lead_days: 1 },
-    ]);
-  });
-
-  v1Router.get("/surplus-alerts", (req, res) => {
-    res.json([
-      { id: 1, crop: "Tomatoes", surplus_kg: 1800, risk_level: "High", message: "Expected surplus of 1,800 kg. Act within 72 hours." },
-    ]);
-  });
+  v1Router.use("/opportunities", opportunityRoutes);
+  v1Router.use("/surplus-alerts", surplusAlertRoutes);
 
   app.use("/api", v1Router);
   app.use("/api/v1", v1Router);

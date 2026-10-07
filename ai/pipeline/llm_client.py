@@ -29,7 +29,7 @@ LAST = {"finish": None, "chars": 0, "repaired": False}
 
 def _ask(client, model: str, messages: list) -> str:
     """Ask ONE model: retry while it is busy, stream the reply, return text."""
-    retries = int(os.environ.get("NVIDIA_RETRIES", "3"))
+    retries = int(os.environ.get("NVIDIA_RETRIES", "0"))
     for attempt in range(retries + 1):
         try:
             # stream=True: text arrives piece by piece, so a long answer
@@ -48,7 +48,7 @@ def _ask(client, model: str, messages: list) -> str:
             print(f"Service busy, retrying in {wait} s...", flush=True)
             time.sleep(wait)
     start = time.time()
-    limit = float(os.environ.get("NVIDIA_MAX_SECONDS", "300"))
+    limit = float(os.environ.get("NVIDIA_MAX_SECONDS", "50"))
     parts, pieces = [], 0
     for chunk in stream:
         if time.time() - start > limit:
@@ -74,7 +74,7 @@ def call_nvidia(messages: list) -> str:
         raise RuntimeError("NVIDIA_API_KEY is not set")
     from openai import OpenAI            # NVIDIA's API is OpenAI-compatible
     client = OpenAI(base_url=NVIDIA_BASE_URL, api_key=key,
-                    timeout=float(os.environ.get("NVIDIA_TIMEOUT", "300")))
+                    timeout=float(os.environ.get("NVIDIA_TIMEOUT", "60")))
     models = [os.environ.get("NVIDIA_MODEL", DEFAULT_MODEL)] + [
         m.strip() for m in os.environ.get("NVIDIA_FALLBACK_MODELS", "").split(",")
         if m.strip()]

@@ -34,7 +34,7 @@ load_project_env()
 # 2. Import the actual AI Brain instead of the basic math pipeline
 from pipeline.brain import call_nvidia, think
 from pipeline.brain_schema import build_situation
-from explanations.explainer import explain_alert
+from explanations.explainer import build_facts, template_text
 from matching.matcher import OPTIONS
 from pipeline.run_pipeline import CAPACITY_T
 from weather.weather_client import get_weather
@@ -167,7 +167,7 @@ def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
     situation = build_situation(lat, lng)
     
     # 2. Ask the NVIDIA model to generate the multi-week plan
-    result = think(situation)
+    result = think(situation, max_tries=1)
     decision = result["decision"]
     
     # Grab the price and co2e dictionaries to calculate weekly metrics
@@ -196,7 +196,10 @@ def get_alerts(lat: Optional[float] = None, lng: Optional[float] = None):
             }
             
             # Get the AI natural language explanation
-            explanation = explain_alert(row_dict)
+            explanation = {
+                "text": template_text(build_facts(row_dict)),
+                "source": "template",
+            }
             
             alerts.append({
                 "week": w["week"],
