@@ -2,6 +2,7 @@ services:
   oracle:
     image: gvenzl/oracle-free:23-slim
     hostname: oracle
+    restart: unless-stopped
     environment:
       ORACLE_PASSWORD: ${ORACLE_ADMIN_PASSWORD:-change_me}
       APP_USER: mavuno
@@ -21,17 +22,25 @@ services:
 
   ai:
     build: ./ai
+    restart: unless-stopped
     env_file:
       - ./ai/.env
     environment:
       PORT: 8010
     ports:
       - "8010:8010"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - mavuno
 
   backend:
     build: ./backend
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
@@ -49,12 +58,13 @@ services:
       oracle:
         condition: service_healthy
       ai:
-        condition: service_started
+        condition: service_healthy
     networks:
       - mavuno
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     environment:
       VITE_API_TARGET: http://backend:4000
     ports:
@@ -68,7 +78,7 @@ networks:
   mavuno:
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 10.77.0.0/24
 
 volumes:
   mavuno-oracle-data:
