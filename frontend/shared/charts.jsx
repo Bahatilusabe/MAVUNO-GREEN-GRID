@@ -4,9 +4,9 @@ import {
 } from "recharts";
 import { COLORS } from "./chartColors";
 
-const GRID = "#f1f5f9"; // Soft neutral gray for cleaner Tailwind contrast
+const GRID = "var(--border)";
 const axis = { 
-  tick: { fontSize: 11, fill: "#64748b" }, // slate-500
+  tick: { fontSize: 11, fill: "var(--muted-foreground)" },
   tickLine: false, 
   axisLine: false 
 };
@@ -15,15 +15,15 @@ const id = (v) => v;
 
 const TIP = {
   contentStyle: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "var(--card)",
     borderRadius: "12px",
-    border: "1px solid #e2e8f0", // slate-200
-    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+    border: "1px solid var(--border)",
+    boxShadow: "var(--shadow-sm)",
     fontSize: "12px",
     padding: "10px 14px",
   },
-  labelStyle: { color: "#0f172a", fontWeight: 700, marginBottom: "4px" },
-  itemStyle: { padding: "2px 0", color: "#334155" },
+  labelStyle: { color: "var(--foreground)", fontWeight: 700, marginBottom: "4px" },
+  itemStyle: { padding: "2px 0", color: "var(--muted-foreground)" },
 };
 
 export function HarvestChart({ labels, supply, demand, height = 240 }) {
@@ -64,7 +64,7 @@ export function BarsChart({ data, xKey, yKey, color = COLORS.green, format = id,
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey={xKey} {...axis} />
         <YAxis tickFormatter={format} {...axis} />
-        <Tooltip {...TIP} formatter={(v) => [format(v), undefined]} cursor={{ fill: "#f0fdf4" }} />
+        <Tooltip {...TIP} formatter={(v) => [format(v), undefined]} cursor={{ fill: "var(--g50)" }} />
         <Bar dataKey={yKey} fill={color} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -79,7 +79,7 @@ export function HBars({ data, nameKey, valueKey, height = 220 }) {
         <CartesianGrid stroke={GRID} horizontal={false} />
         <XAxis type="number" domain={[0, 100]} unit="%" {...axis} />
         <YAxis type="category" dataKey={nameKey} width={74} {...axis} />
-        <Tooltip {...TIP} formatter={(v) => [`${v}%`, undefined]} cursor={{ fill: "#f0fdf4" }} />
+        <Tooltip {...TIP} formatter={(v) => [`${v}%`, undefined]} cursor={{ fill: "var(--g50)" }} />
         <Bar dataKey={valueKey} radius={[0, 4, 4, 0]} barSize={14}>
           {data.map((d) => <Cell key={d[nameKey]} fill={color(d[valueKey])} />)}
         </Bar>

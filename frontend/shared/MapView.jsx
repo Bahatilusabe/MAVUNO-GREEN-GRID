@@ -6,7 +6,7 @@ import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "leaflet-routing-machine";
 
 const AREA = { north: -0.35, south: -0.75, west: 37.1, east: 37.6 }; // Kirinyaga, used for legacy {x, y} pins
-const DANGER = "#dc2626";
+const DANGER = "var(--color-red)";
 
 const toLatLng = (p) =>
   p.lat != null
@@ -21,10 +21,10 @@ const asLatLng = (location) => {
 };
 
 const pinIcon = (color) => {
-  const safe = /^#[0-9a-f]{3,8}$/i.test(color) ? color : "#1e7a46";
+  const safe = color || "var(--color-map-pin)";
   return L.divIcon({ 
-    className: "bg-transparent", 
-    html: `<span style="background:${safe}; width:20px; height:20px; display:inline-block; border-radius:50%; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>`, 
+    className: "leaflet-pin-wrapper",
+    html: `<span class="leaflet-pin" style="background:${safe}"></span>`,
     iconSize: [20, 20], 
     iconAnchor: [10, 20] 
   });
@@ -79,7 +79,7 @@ function RoutingControl({ farmPosition, target, onRouteSummary }) {
       showAlternatives: false,
       collapsible: true,
       lineOptions: {
-        styles: [{ color: "#1e7a46", opacity: 0.85, weight: 5 }],
+        styles: [{ color: "var(--color-map-pin)", opacity: 0.85, weight: 5 }],
         extendToWaypoints: true,
         missingRouteTolerance: 0,
       },
@@ -171,7 +171,7 @@ export default function MapView({
         <LayerControl />
         <Fit k={fitKey || k} />
         {farmPosition && (
-          <Marker position={farmPosition} icon={pinIcon("#1e7a46")}>
+          <Marker position={farmPosition} icon={pinIcon("var(--color-map-pin)")}>
             <Popup>
               <strong>{farm.name || farm.locationName || "Your farm"}</strong>
               <br />
@@ -193,7 +193,7 @@ export default function MapView({
           <Marker
             key={target.id}
             position={target.position}
-            icon={pinIcon(target.type === "market" ? "#7f1d1d" : "#2563eb")}
+            icon={pinIcon(target.type === "market" ? "var(--color-map-market)" : "var(--color-map-storage)")}
             eventHandlers={{ click: () => selectTarget(target.id) }}
           >
             <Popup>

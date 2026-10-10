@@ -25,7 +25,7 @@ export default function CapacityTimeline({ facilities }) {
             <CartesianGrid stroke={GRID} horizontal={false} />
             <XAxis type="number" unit="t" {...AXIS} />
             <YAxis type="category" dataKey="name" width={130} {...AXIS} />
-            <Tooltip {...TIP} formatter={(v) => `${v} t`} cursor={{ fill: "#f3faf6" }} />
+            <Tooltip {...TIP} formatter={(v) => `${v} t`} cursor={{ fill: "var(--g50)" }} />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: "12px", fontSize: "12px" }} />
             <Bar dataKey="available" name="Available" stackId="s" fill={COLORS.green} />
             <Bar dataKey="reserved" name="Reserved" stackId="s" fill={COLORS.blue} radius={[0, 4, 4, 0]} />

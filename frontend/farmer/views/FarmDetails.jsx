@@ -103,7 +103,7 @@ export default function FarmDetails({ farm, onBack, onForecast }) {
 
               <div className="relative w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: "180px" }}>
                 <FakeMap
-                  pins={[{ x: 50, y: 50, color: "#1e7a46", label: farm.name }]}
+                  pins={[{ x: 50, y: 50, color: "var(--color-map-pin)", label: farm.name }]}
                   height="100%"
                 />
               </div>

@@ -13,7 +13,7 @@ const TYPE_LABELS = {
 
 const colorForType = (type) => OPP_COLOR[
   { Buyers: "Buyer", Processors: "Processor" }[type] || type
-] || "#278451";
+] || OPP_COLOR.Buyer;
 
 export default function Opportunities() {
   const [filter, setFilter] = useState("All");

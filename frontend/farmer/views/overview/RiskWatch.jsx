@@ -2,15 +2,16 @@ import { Brain, CircleCheck, Hourglass, Scale } from "lucide-react";
 import { fmt } from "../../../shared/utils";
 import { CropIcon, FakeMap } from "../../components/ui";
 import { FACTORS, CONFIDENCE, HOURS_TO_WINDOW } from "./data";
+import { COLORS } from "../../../shared/chartColors";
 
 function Ring({ pct }) {
   const r = 18, c = 2 * Math.PI * r;
   return (
     <svg viewBox="0 0 44 44" width="52" height="52" role="img" aria-label={`${pct}% confidence`}>
-      <circle cx="22" cy="22" r={r} fill="none" stroke="#e6f4ec" strokeWidth="4" />
-      <circle cx="22" cy="22" r={r} fill="none" stroke="#16a34a" strokeWidth="4" strokeLinecap="round"
+      <circle cx="22" cy="22" r={r} fill="none" stroke="var(--g100)" strokeWidth="4" />
+      <circle cx="22" cy="22" r={r} fill="none" stroke={COLORS.green} strokeWidth="4" strokeLinecap="round"
         strokeDasharray={`${(pct / 100) * c} ${c}`} transform="rotate(-90 22 22)" />
-      <text x="22" y="26" textAnchor="middle" fontSize="11" fontWeight="700" fill="#14532d">{pct}%</text>
+      <text x="22" y="26" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--g900)">{pct}%</text>
     </svg>
   );
 }
@@ -26,7 +27,7 @@ export default function RiskWatch({ m, go }) {
 
       {/* 1. Map Column */}
       <div className="lg:col-span-4 relative min-h-[220px] bg-gray-100 border-b lg:border-b-0 lg:border-r border-gray-200">
-        <FakeMap risk={!!top} height="100%" pins={top ? [{ x: 45, y: 50, color: "#dc2626", label: top.name }] : []} />
+        <FakeMap risk={!!top} height="100%" pins={top ? [{ x: 45, y: 50, color: COLORS.red, label: top.name }] : []} />
         {top && (
           <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-md">
             High Risk Area

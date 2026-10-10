@@ -12,9 +12,9 @@ const TILES = import.meta.env.VITE_MAP_STYLE === "satellite"
   : { url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 };
 
 // Reuse your custom pin icon for consistency
-const pinIcon = L.divIcon({ 
-  className: "mv-pin", 
-  html: `<span style="background:#1e7a46; display:block; width:100%; height:100%; border-radius:50%;"></span>`, 
+const pinIcon = L.divIcon({
+  className: "leaflet-pin-wrapper",
+  html: '<span class="leaflet-pin leaflet-pin--farm"></span>',
   iconSize: [22, 22], 
   iconAnchor: [11, 22] 
 });

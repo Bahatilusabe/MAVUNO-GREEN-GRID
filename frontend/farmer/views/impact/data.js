@@ -18,12 +18,14 @@ export const SERIES = [
   { month: "Oct", produce: 12.5, value: 17.5, co2: 14.5 },
 ];
 
+import { COLORS } from "../../../shared/chartColors";
+
 export const SOURCES = [
-  { name: "Avoided Spoilage", value: 32, color: "#2563eb" },
-  { name: "Optimized Transport", value: 24, color: "#22a05a" },
-  { name: "Storage", value: 18, color: "#f59e0b" },
-  { name: "Processing", value: 15, color: "#7c3aed" },
-  { name: "Recovery", value: 11, color: "#4f46e5" },
+  { name: "Avoided Spoilage", value: 32, color: COLORS.blue },
+  { name: "Optimized Transport", value: 24, color: COLORS.green },
+  { name: "Storage", value: 18, color: COLORS.amber },
+  { name: "Processing", value: 15, color: COLORS.purple },
+  { name: "Recovery", value: 11, color: "var(--color-indigo)" },
 ];
 
 export const FLOW = { produce: "7.2 t saved", market: "4.3 t sold", processing: "1.8 t processed", recovery: "1.1 t compost / biogas" };

@@ -1,6 +1,7 @@
 
 import { Sprout, ShoppingCart, Factory, Recycle, RefreshCw } from "lucide-react";
 import { FLOW } from "./data";
+import { COLORS } from "../../../shared/chartColors";
 
 const NODES = [
   { label: "Produce", sub: FLOW.produce, Icon: Sprout, x: "left-1/2 -translate-x-1/2 top-4" },
@@ -41,11 +42,11 @@ export default function Recovery() {
           <svg viewBox="0 0 300 280" className="w-72 h-72" aria-hidden="true">
             <defs>
               <marker id="tailwind-pg-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M0 0L10 5L0 10z" fill="#16a34a" />
+                <path d="M0 0L10 5L0 10z" fill={COLORS.green} />
               </marker>
             </defs>
             {ARCS.map((d) => (
-              <path key={d} d={d} fill="none" stroke="#16a34a" strokeWidth="2" strokeDasharray="4 4" markerEnd="url(#tailwind-pg-arrow)" />
+              <path key={d} d={d} fill="none" stroke={COLORS.green} strokeWidth="2" strokeDasharray="4 4" markerEnd="url(#tailwind-pg-arrow)" />
             ))}
           </svg>
         </div>

@@ -308,10 +308,10 @@ export default function Assistant({ className = "", selectedPin = null }) {
   };
 
   return (
-    <aside className={`bg-gradient-to-b from-[#f9fff6] via-card to-card rounded-2xl border border-brand-200/70 shadow-[0_20px_45px_rgba(16,104,61,0.12)] flex flex-col h-full overflow-hidden ring-1 ring-white/60 ${className}`}>
+    <aside className={`bg-gradient-to-b from-background via-card to-card rounded-2xl border border-brand-200/70 shadow-lg flex flex-col h-full overflow-hidden ring-1 ring-white/60 ${className}`}>
       
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-brand-100 bg-gradient-to-r from-brand-50 via-[#f2fbf4] to-white flex items-center gap-3">
+      <div className="p-4 sm:p-5 border-b border-brand-100 bg-gradient-to-r from-brand-50 via-background to-card flex items-center gap-3">
         <div className="p-2.5 bg-gradient-to-br from-brand-200 to-brand-100 text-brand-700 rounded-xl flex-shrink-0 shadow-sm ring-2 ring-white">
           <Sprout aria-hidden="true" size={22} />
         </div>
@@ -322,7 +322,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
       </div>
 
       {/* Chat Messages Area */}
-      <div className="p-4 sm:p-5 flex-grow overflow-y-auto space-y-4 max-h-[430px] sm:max-h-[500px] bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.06),_transparent_45%)]" aria-live="polite">
+      <div className="p-4 sm:p-5 flex-grow overflow-y-auto space-y-4 max-h-[430px] sm:max-h-[500px] bg-muted" aria-live="polite">
         {msgs.map((m, i) => {
           const isAi = m.from === "ai";
           return (
@@ -332,7 +332,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
                   <Bot size={14} />
                 </div>
               )}
-              <div className={`p-3.5 rounded-2xl text-sm leading-relaxed max-w-[86%] shadow-[0_8px_20px_rgba(15,23,42,0.06)] ${
+              <div className={`p-3.5 rounded-2xl text-sm leading-relaxed max-w-[86%] shadow-sm ${
                 isAi 
                   ? "bg-white/90 border border-brand-100 text-foreground rounded-tl-md"
                   : "bg-gradient-to-br from-brand-700 to-brand-800 text-primary-foreground rounded-tr-md"
@@ -340,7 +340,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
                 {m.text}
               </div>
               {!isAi && (
-                <div className="p-1.5 bg-[#e7f6eb] text-brand-800 rounded-full flex-shrink-0 mt-1 shadow-sm ring-1 ring-brand-100">
+                <div className="p-1.5 bg-brand-50 text-brand-800 rounded-full flex-shrink-0 mt-1 shadow-sm ring-1 ring-brand-100">
                   <User size={14} />
                 </div>
               )}
@@ -351,7 +351,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
 
       {/* Suggested Prompts Section - Only show if no user messages exist yet */}
       {msgs.length <= 1 && (
-        <div className="px-4 py-3 bg-gradient-to-b from-[#f2faf3] to-[#f7faf7] border-t border-brand-100 space-y-3.5">
+        <div className="px-4 py-3 bg-gradient-to-b from-background to-muted border-t border-brand-100 space-y-3.5">
           
           {/* Awareness Tip */}
           <div className="flex items-start gap-2 p-3 bg-brand-50/70 rounded-xl border border-brand-100 shadow-sm">
@@ -378,7 +378,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
 
       {/* Input Form */}
       <form 
-        className="p-3.5 bg-gradient-to-r from-white to-brand-50/30 border-t border-brand-100 flex items-center gap-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+        className="p-3.5 bg-gradient-to-r from-card to-brand-50/30 border-t border-brand-100 flex items-center gap-2.5 shadow-sm"
         onSubmit={(e) => { e.preventDefault(); send(); }}
       >
         <button
@@ -419,7 +419,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
         />
         <button
           type="submit"
-          className="p-2.5 bg-gradient-to-br from-brand-700 to-brand-800 hover:brightness-105 text-primary-foreground rounded-xl transition-all shadow-[0_10px_20px_rgba(20,83,45,0.2)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
+          className="p-2.5 bg-gradient-to-br from-brand-700 to-brand-800 hover:brightness-105 text-primary-foreground rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
           aria-label="Send"
           disabled={loading || !text.trim()}
         >

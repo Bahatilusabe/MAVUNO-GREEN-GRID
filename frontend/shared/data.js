@@ -17,7 +17,9 @@ export const OPPS = [
   { id: 4, name: "Wakulima Transporters", type: "Transport", km: 40, cap: "10 t", price: "KES 18/km", note: "Available", x: 30, y: 74 },
 ];
 
-export const OPP_COLOR = { Buyer: "#1e7a46", Processor: "#2f9e5c", Storage: "#2563eb", Transport: "#1e3a8a" };
+import { COLORS } from "./chartColors";
+
+export const OPP_COLOR = { Buyer: COLORS.green, Processor: "var(--color-green-mid)", Storage: COLORS.blue, Transport: "var(--color-blue-dark)" };
 
 export const RECS = [
   { id: 1, kind: "Harvest", title: "High Surplus Risk – Tomatoes", text: "Expected surplus of 1,800 kg. Act within 72 hours.", cta: "View Plan", conf: 87, tone: "danger",

@@ -17,6 +17,10 @@
   /* brand scale (also available as Tailwind classes: bg-brand-700, text-brand-800 ...) */
   --g900: #0b3d20; --g800: #11502b; --g700: #1e7a46; --g500: #22a05a; --g100: #e6f4ec; --g50: #f3faf6;
   --gold: #f59e0b; --gold-soft: #fef3c7; --soil: #7c5a3a; --soil-soft: #f3ebe0;
+  --color-blue: #2563eb; --color-blue-dark: #1e3a8a; --color-red: #dc2626; --color-purple: #7c3aed;
+  --color-green-mid: #2f9e5c; --color-green-soft: #86d3a3; --color-orange: #ea580c; --color-indigo: #4f46e5;
+  --color-map-pin: #1e7a46; --color-map-market: #7f1d1d; --color-map-storage: #2563eb;
+  --shadow-sm: 0 4px 14px rgb(11 61 32 / 12%);
 
   /* shadcn tokens */
   --background: oklch(0.982 0.008 158);          /* #f4f9f6 page */
@@ -51,6 +55,21 @@
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.45 0.08 153);
   --sidebar-ring: oklch(0.623 0.149 153);
+}
+
+.leaflet-pin {
+  background: var(--color-map-pin);
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  display: block;
+  height: 20px;
+  width: 20px;
+}
+
+.leaflet-pin--farm {
+  height: 100%;
+  width: 100%;
 }
 
 /* shadcn components only; the custom page CSS is light-only for now */
