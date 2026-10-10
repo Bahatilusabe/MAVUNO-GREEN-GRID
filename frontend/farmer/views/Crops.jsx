@@ -65,7 +65,7 @@ export default function Crops({ farms, crops = [], onOpen, onAdd }) {
                   {((record.expected_yield || 0) / 1000).toFixed(1)} t expected • {farm?.name}
                 </small>
                 <div className="mt-2">
-                  <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${riskClass(f.risk)}`}>
+                  <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${riskClass(farm?.risk || "Low")}`}>
                     {farm?.risk || "Low"} Risk
                   </span>
                 </div>
@@ -148,7 +148,7 @@ export default function Crops({ farms, crops = [], onOpen, onAdd }) {
                     </div>
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${riskClass(f.risk)}`}>
+                    <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full ${riskClass(farm?.risk || "Low")}`}>
                       {farm?.risk || "Low"}
                     </span>
                   </td>

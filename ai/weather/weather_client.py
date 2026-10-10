@@ -1,78 +1,45 @@
-import os
 import time
-from pathlib import Path
 
 import requests
-from dotenv import load_dotenv
 
+OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-def load_project_env() -> None:
-    """Load the repo's .env files from all valid project locations."""
-    candidates = [
-        Path(__file__).resolve().parents[1] / ".env",
-        Path(__file__).resolve().parents[1] / "pipeline" / ".env",
-        Path(__file__).resolve().parents[2] / ".env",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            load_dotenv(candidate, override=False)
-
-
-load_project_env()
-
-OPENWEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
-
-# Simple cache to prevent spamming the API on every page reload
 _CACHE = {}
-CACHE_TTL = 3600  # 1 hour
+CACHE_TTL = 3600
+
 
 def get_weather(lat: float = -0.5, lng: float = 37.35) -> dict:
-    """Fetch current temp and rain from the OpenWeather API."""
+    """Fetch current temperature and precipitation from Open-Meteo."""
     if lat is None or lng is None:
         lat, lng = -0.5, 37.35
 
     cache_key = f"{round(lat, 2)},{round(lng, 2)}"
-    
-    if cache_key in _CACHE and time.time() - _CACHE[cache_key]["time"] < CACHE_TTL:
-        return _CACHE[cache_key]["data"]
-
-    api_key = os.environ.get("OPENWEATHER_API_KEY")
-    
-    # Graceful fallback if the API key hasn't been pasted into .env yet
-    if not api_key:
-        print("OPENWEATHER_API_KEY is not set in .env. Using seasonal defaults.")
-        return {"temperature_c": 25.0, "rainfall_mm": 0.0, "source": "fallback"}
+    cached = _CACHE.get(cache_key)
+    if cached and time.time() - cached["time"] < CACHE_TTL:
+        return cached["data"]
 
     params = {
-        "lat": lat,
-        "lon": lng,
-        "appid": api_key,
-        "units": "metric"  # Automatically returns temperature in Celsius
+        "latitude": lat,
+        "longitude": lng,
+        "current": "temperature_2m,precipitation",
+        "timezone": "Africa/Nairobi",
     }
 
     try:
-        # 5-second timeout ensures the AI pipeline never hangs if the network drops
-        resp = requests.get(OPENWEATHER_URL, params=params, timeout=5.0)
-        resp.raise_for_status()
-        data = resp.json()
-        
-        temp = data.get("main", {}).get("temp", 25.0)
-        
-        # OpenWeather returns rain as a dictionary (e.g., {"1h": 0.5} or {"3h": 1.2})
-        rain_data = data.get("rain", {})
-        rainfall = rain_data.get("1h", rain_data.get("3h", 0.0))
-        
+        response = requests.get(OPEN_METEO_URL, params=params, timeout=5.0)
+        response.raise_for_status()
+        current = response.json().get("current", {})
         result = {
-            "temperature_c": temp,
-            "rainfall_mm": rainfall,
-            "source": "openweather"
+            "temperature_c": current.get("temperature_2m", 25.0),
+            "rainfall_mm": current.get("precipitation", 0.0),
+            "source": "open-meteo",
         }
-    except Exception as e:
-        print(f"OpenWeather fetch failed ({e}). Using seasonal defaults.")
+    except requests.RequestException as error:
+        print(f"Open-Meteo fetch failed ({error}). Using seasonal defaults.")
         result = {
             "temperature_c": 25.0,
             "rainfall_mm": 0.0,
-            "source": "fallback"
+            "source": "fallback",
         }
 
     _CACHE[cache_key] = {"time": time.time(), "data": result}

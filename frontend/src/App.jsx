@@ -1,14 +1,14 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { Handshake, Sprout, Tractor, Truck, ChevronRight } from "lucide-react";
 import { Toaster } from "sonner";
-import { PageSkeleton } from "../shared/Skeleton";
+import Loader from "../shared/Loader";
 
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
 const AdminDashboard = lazy(() => import("../admin/AdminDashboard"));
 const PartnerPortal = lazy(() => import("../partner/PartnerPortal"));
 
-const FARMER_VIEWS = ["overview", "farms", "crops", "opportunities", "recs", "market", "storage", "transport", "impact", "messages", "settings"];
+const FARMER_VIEWS = ["overview", "farms", "crops", "opportunities", "recs", "market", "storage", "transport", "weather", "impact", "messages", "settings"];
 
 const LINKS = [
   ["/", "Home"],
@@ -117,7 +117,7 @@ export default function App() {
 
   return (
     <>
-      <Suspense fallback={<PageSkeleton />}>{page}</Suspense>
+      <Suspense fallback={<Loader className="system-loader--page" />}>{page}</Suspense>
       <Toaster position="bottom-right" richColors closeButton />
       {path !== "/" && <Switcher path={path} />}
     </>

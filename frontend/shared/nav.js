@@ -1,5 +1,6 @@
 import {
   Earth,
+  CloudSun,
   LayoutDashboard,
   Leaf,
   Link2,
@@ -21,6 +22,7 @@ export const FARMER_NAV = [
   ["market", "Market & Buyers", ShoppingCart],
   ["storage", "Storage", Warehouse],
   ["transport", "Transport", Truck],
+  ["weather", "Weather", CloudSun],
   ["impact", "Impact", Earth],
   ["messages", "Messages", MessageCircle, 2],
   ["settings", "Settings", Settings],

@@ -19,6 +19,7 @@ import Impact from "./views/Impact";
 import Profile from "./views/Profile";
 import Storage from "./views/Storage";
 import Transport from "./views/Transport";
+import Weather from "./views/Weather";
 import Messages from "./views/Messages";
 import AddCropForm from "./views/AddCropForm";
 import { NOTIFICATIONS } from "./views/messages/data";
@@ -28,6 +29,7 @@ const SUBTITLES = {
   transport: "Move your produce efficiently.",
   impact: "See what MAVUNO Green Grid is helping you save.",
   messages: "Alerts, buyer updates and system notices in one place.",
+  weather: "Forecasts, weather statistics and field predictions for your farms.",
 };
 
 export default function FarmerPortal({ initialView = "overview" }) {
@@ -109,6 +111,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
     case "settings": content = <Profile />; break;
     case "storage": content = <Storage farms={farms} />; break;
     case "transport": content = <Transport go={go} />; break;
+    case "weather": content = <Weather />; break;
     case "messages": content = <Messages items={notes} setItems={setNotes} go={go} />; break;
     default: content = (
       <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
