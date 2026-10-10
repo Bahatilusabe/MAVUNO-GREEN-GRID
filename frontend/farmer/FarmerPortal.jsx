@@ -20,6 +20,7 @@ import Profile from "./views/Profile";
 import Storage from "./views/Storage";
 import Transport from "./views/Transport";
 import Messages from "./views/Messages";
+import AddCropForm from "./views/AddCropForm";
 import { NOTIFICATIONS } from "./views/messages/data";
 
 const SUBTITLES = {
@@ -32,6 +33,17 @@ const SUBTITLES = {
 export default function FarmerPortal({ initialView = "overview" }) {
   const [view, setView] = useState(initialView);
   const [farms, setFarms] = useState(INITIAL_FARMS);
+  const [crops, setCrops] = useState(() => INITIAL_FARMS.map((farm) => ({
+    id: `demo-${farm.id}`,
+    farm_id: farm.id,
+    crop_type: farm.crop,
+    planting_date: "",
+    expected_harvest_date: farm.harvest,
+    area_planted: farm.area,
+    expected_yield: farm.kg,
+    yield_unit: "kg",
+    status: farm.stage === "Planning" ? "PLANNED" : "GROWING",
+  })));
   const [farmId, setFarmId] = useState(1);
   const [adding, setAdding] = useState(false);
   const [county, setCounty] = useState("Kirinyaga");
@@ -53,6 +65,15 @@ export default function FarmerPortal({ initialView = "overview" }) {
     toast.success(`${f.name} added`);
   };
 
+  const addCrop = (crop) => {
+    setCrops((current) => [...current, crop]);
+    setFarms((current) => current.map((item) => item.id === crop.farm_id
+      ? { ...item, crop: crop.crop_type, kg: crop.expected_yield, harvest: crop.expected_harvest_date, stage: crop.status }
+      : item));
+    setAdding(false);
+    toast.success(`${crop.crop_type} added to the farm`);
+  };
+
   const unread = notes.filter((n) => n.unread).length;
   const nav = FARMER_NAV.map((n) => (n[0] === "messages" ? [n[0], n[1], n[2], unread] : n));
 
@@ -72,7 +93,14 @@ export default function FarmerPortal({ initialView = "overview" }) {
       );
       break;
     case "farm": content = <FarmDetails farm={farm} onBack={() => go("farms")} onForecast={() => setView("forecast")} />; break;
-    case "crops": content = <Crops farms={farms} onOpen={openCrop} />; break;
+    case "crops":
+      content = (
+        <div className="space-y-6">
+          {adding && <AddCropForm farms={farms} onSave={addCrop} onCancel={() => setAdding(false)} />}
+          <Crops farms={farms} crops={crops} onOpen={openCrop} onAdd={() => setAdding(true)} />
+        </div>
+      );
+      break;
     case "forecast": content = <Forecast farm={farm} onBack={() => go("crops")} go={go} />; break;
     case "opportunities": content = <Opportunities />; break;
     case "recs": content = <Recommendations />; break;

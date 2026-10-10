@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cherry, Droplets, MapPin, Tractor, TrendingUp, ArrowLeft, ArrowRight, Compass, ShieldCheck } from "lucide-react";
+import { Cherry, Droplets, MapPin, Tractor, TrendingUp, ArrowLeft, ArrowRight, Compass, ShieldCheck, CalendarDays, Sprout } from "lucide-react";
 import { Thumb, FakeMap } from "../components/ui";
 
 const ACTIVITY = [
@@ -11,6 +11,13 @@ const ACTIVITY = [
 
 export default function FarmDetails({ farm, onBack, onForecast }) {
   const [tab, setTab] = useState("Overview");
+  const cropRecords = farm.crops || [{
+    id: farm.id,
+    crop_type: farm.crop,
+    expected_harvest_date: farm.harvest,
+    expected_yield: farm.kg,
+    status: farm.stage,
+  }];
 
   return (
     <div className="space-y-6 pb-12">
@@ -128,10 +135,59 @@ export default function FarmDetails({ farm, onBack, onForecast }) {
           </div>
 
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
-          {tab} details coming soon.
+      ) : tab === "Crops" ? (
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 bg-green-50/40">
+            <h3 className="font-bold text-green-900 flex items-center gap-2"><Sprout size={19} className="text-green-600" /> Crop cycles</h3>
+            <p className="text-xs text-gray-500 mt-1">Track each planting cycle and prepare the next handoff before harvest.</p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {cropRecords.map((crop) => (
+              <div key={crop.id} className="p-5 flex flex-wrap items-center gap-4">
+                <Thumb crop={crop.crop_type} size={48} />
+                <div className="min-w-[160px]">
+                  <strong className="block text-sm font-bold text-gray-900">{crop.crop_type}</strong>
+                  <span className="text-xs text-gray-500">Expected yield: {crop.expected_yield || 0} kg</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <CalendarDays size={14} className="text-green-600" /> Harvest: {crop.expected_harvest_date || "Pending"}
+                </div>
+                <span className="ml-auto text-xs font-semibold bg-green-100 text-green-800 px-2.5 py-1 rounded-full">{crop.status}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : tab === "Soil & Water" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2"><Droplets size={18} className="text-blue-600" /> Water plan</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100"><span className="block text-xs text-gray-500">Source</span><strong className="text-sm text-gray-900">{farm.water}</strong></div>
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100"><span className="block text-xs text-gray-500">Irrigation</span><strong className="text-sm text-gray-900">{farm.irrigation}</strong></div>
+            </div>
+            <p className="text-xs text-gray-500">Keep this information current so weather alerts and crop recommendations can be targeted to this farm.</p>
+          </section>
+          <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+            <h3 className="font-bold text-gray-900">Farm baseline</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Area</span><strong>{farm.area} ha</strong></div>
+              <div className="flex justify-between border-b pb-2"><span className="text-gray-500">Farm type</span><strong>{farm.type}</strong></div>
+              <div className="flex justify-between"><span className="text-gray-500">Location</span><strong>{farm.county}</strong></div>
+            </div>
+          </section>
         </div>
+      ) : (
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h3 className="font-bold text-gray-900 border-b pb-3">Farm history</h3>
+          <div className="mt-4 space-y-3">
+            {ACTIVITY.map(([Icon, activity], index) => (
+              <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                <Icon size={17} className="text-green-700" />
+                <span className="text-sm text-gray-700">{activity}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
