@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import net from "node:net";
 
 import authRoutes from "./modules/auth/routes.js";
 import farmRoutes from "./modules/farms/routes.js";
@@ -13,42 +12,14 @@ import storageRoutes from "./modules/storage/routes.js";
 import weatherRoutes from "./modules/weather/routes.js";
 import overviewRoutes from "./modules/overview/routes.js";
 import chatRoutes from "./modules/chat/routes.js";
+import routingRoutes from "./modules/routing/routes.js";
 
 export function createApp() {
   const app = express();
-  const configuredOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  const isAllowedOrigin = (origin) => {
-    if (!origin || configuredOrigins.includes(origin)) return true;
-    if (process.env.NODE_ENV !== "development") return false;
-
-    try {
-      const url = new URL(origin);
-      if (url.protocol !== "http:" || url.port !== "5173") return false;
-      if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
-      const address = net.isIP(url.hostname);
-      return address === 4 && (
-        url.hostname.startsWith("10.") ||
-        url.hostname.startsWith("192.168.") ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(url.hostname)
-      );
-    } catch {
-      return false;
-    }
-  };
 
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (isAllowedOrigin(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Origin is not allowed by CORS"));
-        }
-      },
+      origin: process.env.CORS_ORIGIN || "http://localhost:5173",
       credentials: true,
     })
   );
@@ -68,6 +39,7 @@ export function createApp() {
   v1Router.use("/weather", weatherRoutes);
   v1Router.use("/overview", overviewRoutes);
   v1Router.use("/chat", chatRoutes);
+  v1Router.use("/route", routingRoutes);
 
   // Placeholder data until real modules exist
   v1Router.get("/opportunities", (req, res) => {
