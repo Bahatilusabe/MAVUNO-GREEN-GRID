@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 
+import { requireAuth } from "./middleware/auth.js";
 import authRoutes from "./modules/auth/routes.js";
 import farmRoutes from "./modules/farms/routes.js";
 import cropRoutes from "./modules/crops/routes.js";
@@ -23,23 +24,28 @@ export function createApp() {
       credentials: true,
     })
   );
-  app.use(express.json());
+  app.use(express.json({ limit: "100kb" }));
 
   const v1Router = express.Router();
   v1Router.get("/health", (req, res) => res.json({ ok: true }));
 
+  // Public
   v1Router.use("/auth", authRoutes);
+  v1Router.use("/weather", weatherRoutes);
+  v1Router.use("/route", routingRoutes);
+
+  // Own auth + role + ownership checks inside the module
   v1Router.use("/farms", farmRoutes);
   v1Router.use("/crops", cropRoutes);
-  v1Router.use("/resources", resourceRoutes);
-  v1Router.use("/interventions", interventionRoutes);
-  v1Router.use("/transactions", transactionRoutes);
-  v1Router.use("/transport", transportRoutes);
-  v1Router.use("/storage", storageRoutes);
-  v1Router.use("/weather", weatherRoutes);
   v1Router.use("/overview", overviewRoutes);
-  v1Router.use("/chat", chatRoutes);
-  v1Router.use("/route", routingRoutes);
+
+  // Not yet ported or reviewed: authentication is enforced here until each module has its own checks
+  v1Router.use("/resources", requireAuth, resourceRoutes);
+  v1Router.use("/interventions", requireAuth, interventionRoutes);
+  v1Router.use("/transactions", requireAuth, transactionRoutes);
+  v1Router.use("/transport", requireAuth, transportRoutes);
+  v1Router.use("/storage", requireAuth, storageRoutes);
+  v1Router.use("/chat", requireAuth, chatRoutes);
 
   // Placeholder data until real modules exist
   v1Router.get("/opportunities", (req, res) => {
