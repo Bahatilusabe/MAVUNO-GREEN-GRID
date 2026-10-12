@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { api, getToken } from "../lib/api";
 
 export function useOverview() {
   const [data, setData] = useState(null);
@@ -9,14 +10,8 @@ export function useOverview() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/overview", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        signal,
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error || res.statusText);
-      setData(body);
+      if (!getToken()) throw new Error("Not signed in");
+      setData(await api.get("/overview", { signal }));
     } catch (e) {
       if (e.name !== "AbortError") setError(e.message);
     } finally {

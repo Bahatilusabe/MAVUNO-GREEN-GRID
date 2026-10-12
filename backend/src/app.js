@@ -68,8 +68,8 @@ export function createApp() {
   v1Router.use("/matches", matchRoutes);
   v1Router.use("/opportunities", opportunitiesRoutes);
 
-  // AI-backed: signed in and rate-limited, because every call spends model quota
-  v1Router.use("/chat", requireAuth, rateLimit({ max: 20 }), chatRoutes);
+  // AI-backed chat is available to guests; authenticated users additionally receive farm context.
+  v1Router.use("/chat", rateLimit({ max: 20 }), chatRoutes);
   v1Router.use("/tts", requireAuth, rateLimit({ max: 30 }), ttsRoutes);
 
   // Not yet ported or reviewed: authentication is enforced here until each module has its own checks

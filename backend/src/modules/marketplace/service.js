@@ -1,32 +1,56 @@
-import { getConnection } from "../../db/pool.js";
+import crypto from "node:crypto";
+import { getConnection, query } from "../../db/pool.js";
+import { createMatch } from "../matches/service.js";
+import { HttpError } from "../../utils/errors.js";
 
+const MATCH_STATUSES = new Set(["pending", "declined", "cancelled", "scheduled", "in_transit", "delivered"]);
+
+// Compatibility adapter for older marketplace callers. The canonical write path is
+// the farmer-owned matches service, which validates the crop, target and capacity.
 export async function createMatchRequest(data) {
-  const { farmer_id, partner_id, crop_id, kg, offer_price, pickup_date } = data;
-  
-  // Check partner capacity first
-  const partnerRes = await pool.query(
-    "SELECT capacity, current_load FROM partners WHERE id = $1",
-    [partner_id]
-  );
-  const partner = partnerRes.rows[0];
+  const idempotencyKey =
+    data.idempotency_key ??
+    crypto
+      .createHash("sha256")
+      .update(`${data.farmer_id}:${data.crop_id}:${data.partner_id ?? data.place_id}:${data.kg}`)
+      .digest("hex")
+      .slice(0, 64);
 
-  if (!partner || (partner.current_load + kg > partner.capacity)) {
-    throw new Error("Requested quantity exceeds partner's remaining capacity.");
-  }
-
-  const { rows } = await pool.query(
-    `INSERT INTO match_requests (farmer_id, partner_id, crop_id, kg, offer_price, pickup_date, status)
-     VALUES ($1, $2, $3, $4, $5, $6, 'Pending') RETURNING *`,
-    [farmer_id, partner_id, crop_id, kg, offer_price, pickup_date]
-  );
-  
-  return rows[0];
+  const { match } = await createMatch(data.farmer_id, {
+    crop_id: data.crop_id,
+    kg: data.kg,
+    price_per_kg: data.offer_price,
+    pickup_date: data.pickup_date,
+    partner_id: data.partner_id,
+    place_id: data.place_id,
+    notes: data.notes,
+    idempotency_key: idempotencyKey,
+  });
+  return match;
 }
 
 export async function updateRequestStatus(requestId, status) {
-  const { rows } = await pool.query(
-    `UPDATE match_requests SET status = $1 WHERE id = $2 RETURNING *`,
-    [status, requestId]
+  if (!MATCH_STATUSES.has(status)) throw new HttpError(400, "Invalid match request status");
+  const connection = await getConnection();
+  try {
+    const result = await connection.execute(
+      `UPDATE match_requests
+          SET status = :status
+        WHERE id = :id`,
+      { id: requestId, status }
+    );
+    if (!result.rowsAffected) return null;
+    await connection.commit();
+  } finally {
+    await connection.close();
+  }
+
+  const { rows } = await query(
+    `SELECT id, farmer_id, partner_id, place_id, crop_id, kg, price_per_kg,
+            pickup_date, status, created_at, updated_at
+       FROM match_requests
+      WHERE id = :1`,
+    [requestId]
   );
-  return rows[0];
+  return rows[0] ?? null;
 }
