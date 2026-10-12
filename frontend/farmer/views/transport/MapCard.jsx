@@ -2,11 +2,11 @@ import { MapPin, Navigation } from "lucide-react";
 import { FakeMap } from "../../components/ui";
 
 const LAYERS = [
-  ["Farms", "#f59e0b", [{ x: 38, y: 22 }, { x: 22, y: 55 }]],
-  ["Buyers", "#7f1d1d", [{ x: 80, y: 82 }]],
-  ["Storage", "#2563eb", [{ x: 25, y: 74 }]],
-  ["Processors", "#ea580c", [{ x: 74, y: 48 }]],
-  ["Trucks", "#1e7a46", [{ x: 52, y: 38 }, { x: 60, y: 62 }]],
+  ["Farms", "var(--gold)", [{ x: 38, y: 22 }, { x: 22, y: 55 }]],
+  ["Buyers", "var(--color-map-market)", [{ x: 80, y: 82 }]],
+  ["Storage", "var(--color-map-storage)", [{ x: 25, y: 74 }]],
+  ["Processors", "var(--color-orange)", [{ x: 74, y: 48 }]],
+  ["Trucks", "var(--color-map-pin)", [{ x: 52, y: 38 }, { x: 60, y: 62 }]],
 ];
 
 export default function MapCard() {

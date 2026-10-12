@@ -17,7 +17,9 @@ export const OPPS = [
   { id: 4, name: "Wakulima Transporters", type: "Transport", km: 40, cap: "10 t", price: "KES 18/km", note: "Available", x: 30, y: 74 },
 ];
 
-export const OPP_COLOR = { Buyer: "#1e7a46", Processor: "#2f9e5c", Storage: "#2563eb", Transport: "#1e3a8a" };
+import { COLORS } from "./chartColors";
+
+export const OPP_COLOR = { Buyer: COLORS.green, Processor: "var(--color-green-mid)", Storage: COLORS.blue, Transport: "var(--color-blue-dark)" };
 
 export const RECS = [
   { id: 1, kind: "Harvest", title: "High Surplus Risk – Tomatoes", text: "Expected surplus of 1,800 kg. Act within 72 hours.", cta: "View Plan", conf: 87, tone: "danger",
@@ -82,13 +84,37 @@ export const PROMPTS = [
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-export async function fetchWeatherForecast({ lat = -0.5186, lon = 37.3675 } = {}) {
-  const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+export async function fetchWeatherForecast({ latitude = -0.5186, longitude = 37.3675 } = {}) {
+  const params = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
   const response = await fetch(`${API_URL}/weather/forecast?${params}`);
   if (!response.ok) {
     throw new Error(`Weather service returned HTTP ${response.status}`);
   }
-  return response.json();
+  const data = await response.json();
+  return normalizeWeatherForecast(data);
+}
+
+const weatherIconFromCode = (code) => {
+  if ([95, 96, 99].includes(Number(code))) return "storm";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(Number(code))) return "rain";
+  if ([1, 2].includes(Number(code))) return "partlyCloudy";
+  return "sunny";
+};
+
+export function normalizeWeatherForecast(data) {
+  if (!data?.daily?.time) return data;
+  const daily = data.daily;
+  return {
+    ...data,
+    forecast: daily.time.slice(0, 5).map((date, index) => ({
+      day: index === 0 ? "Today" : new Intl.DateTimeFormat("en-KE", { weekday: "short" }).format(new Date(`${date}T12:00:00`)),
+      date,
+      temperatureC: Math.round(Number(daily.temperature_2m_max?.[index] ?? 0)),
+      precipitationProbability: Math.round(Number(daily.precipitation_probability_max?.[index] ?? 0)),
+      icon: weatherIconFromCode(daily.weather_code?.[index]),
+    })),
+    source: "open-meteo",
+  };
 }
 
 export async function fetchSurplusAlerts() {

@@ -3,8 +3,8 @@ import { FakeMap } from "../../components/ui";
 
 export default function MapCard({ facilities }) {
   const pins = [
-    ...facilities.map((f) => ({ x: f.x, y: f.y, color: "#2563eb", label: `${f.name} (${f.km} km)` })),
-    { x: 48, y: 55, color: "#1e7a46", label: "Your farm" },
+    ...facilities.map((f) => ({ x: f.x, y: f.y, color: "var(--color-map-storage)", label: `${f.name} (${f.km} km)` })),
+    { x: 48, y: 55, color: "var(--color-map-pin)", label: "Your farm" },
   ];
 
   return (

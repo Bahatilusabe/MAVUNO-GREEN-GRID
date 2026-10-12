@@ -46,7 +46,7 @@ export default function Trend() {
             <YAxis {...AXIS} />
             <Tooltip {...TIP} />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: "12px", fontSize: "12px" }} />
-            <Bar dataKey="produce" name="Produce Saved (t)" fill="#86d3a3" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="produce" name="Produce Saved (t)" fill="var(--color-green-soft)" radius={[4, 4, 0, 0]} />
             <Line type="monotone" dataKey="value" name="Value Protected (KES 100k)" stroke={COLORS.blue} strokeWidth={2.5} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="co2" name="CO₂e Avoided (t)" stroke={COLORS.green} strokeWidth={2.5} dot={{ r: 3 }} />
           </ComposedChart>

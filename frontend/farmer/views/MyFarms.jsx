@@ -19,7 +19,7 @@ export default function MyFarms({ farms, onOpen, onAdd }) {
 
   const pins = farms.flatMap((f) => {
     const c = parseCoords(f.coords);
-    return c ? [{ ...c, color: f.risk === "High" ? "#dc2626" : "#1e7a46", label: f.name }] : [];
+    return c ? [{ ...c, color: f.risk === "High" ? "var(--color-red)" : "var(--color-map-pin)", label: f.name }] : [];
   });
   const unmapped = farms.length - pins.length;
 

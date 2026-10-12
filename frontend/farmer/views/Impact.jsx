@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Leaf, Banknote, Cloud, Droplets, TrendingUp, Award } from "lucide-react";
 import { fetchSurplusAlerts } from "../../shared/data";
+import Loader from "../../shared/Loader";
 import { STATS, TRENDS } from "./impact/data";
 import Trend from "./impact/Trend";
 import Recovery from "./impact/Recovery";
@@ -10,18 +11,30 @@ import Interventions from "./impact/Interventions";
 
 export default function Impact() {
   const [impactData, setImpactData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    fetchSurplusAlerts().then((response) => {
-      if (active && response?.status === "success" && response.global_impact) {
-        setImpactData(response.global_impact);
-      }
-    });
+    fetchSurplusAlerts()
+      .then((response) => {
+        if (active && response?.status === "success" && response.global_impact) {
+          setImpactData(response.global_impact);
+        }
+      })
+      .catch((error) => {
+        console.error("Unable to load live impact data:", error);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
   }, []);
+
+  if (loading) {
+    return <Loader className="system-loader--section" label="Loading impact" words={["produce", "value", "water", "climate"]} />;
+  }
 
   const saved = impactData
     ? `${Number(impactData.tonnes_saved ?? 0).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t`

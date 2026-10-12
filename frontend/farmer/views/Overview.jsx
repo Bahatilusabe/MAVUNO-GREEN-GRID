@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Sprout, ShieldCheck, MapPin, Phone, Mail, ArrowRight } from "lucide-react";
+import { Sprout, ShieldCheck, MapPin, Phone, ArrowRight } from "lucide-react";
 import EmptyState from "../../shared/EmptyState";
 import { useOverview } from "../../src/hooks/useOverview";
 import StatCards from "./overview/StatCards";
@@ -9,12 +9,13 @@ import TodayRecs from "./overview/TodayRecs";
 import HarvestOutlook from "./overview/HarvestOutlook";
 import GridActivity from "./overview/GridActivity";
 import EnvImpact from "./overview/EnvImpact";
-import { toRiskModel } from "./overview/adapter";
+import { toRiskModel, toFarmRows, toActivity } from "./overview/adapter";
 
 const EXPOSED_SHARE = 0.8;
 
 export default function Overview({ farms, go, onOpenFarm }) {
   const { data, loading, error } = useOverview();
+
   const mockModel = useMemo(() => {
     const high = farms.filter((f) => f.risk === "High");
     return {
@@ -24,9 +25,12 @@ export default function Overview({ farms, go, onOpenFarm }) {
       topFarm: high[0],
     };
   }, [farms]);
-  const m = { ...mockModel, ...toRiskModel(data) };
 
-  if (!farms.length) {
+  const m = { ...mockModel, ...toRiskModel(data) };
+  const farmRows = toFarmRows(data) ?? farms;
+  const activity = toActivity(data);
+
+  if (!farmRows.length) {
     return (
       <EmptyState
         icon={Sprout}
@@ -50,8 +54,8 @@ export default function Overview({ farms, go, onOpenFarm }) {
           Live risk data is unavailable. Showing the latest local farm data.
         </p>
       )}
-      
-      {/* Profile Summary Strip (Added to Overview) */}
+
+      {/* Profile Summary Strip */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-600 to-green-800 text-white flex items-center justify-center font-bold text-lg shadow-inner">
@@ -70,34 +74,29 @@ export default function Overview({ farms, go, onOpenFarm }) {
             </p>
           </div>
         </div>
-        <button 
-          onClick={() => go("settings")} 
+        <button
+          onClick={() => go("settings")}
           className="w-full sm:w-auto px-4 py-2 text-xs font-semibold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
         >
           Manage Profile <ArrowRight size={14} />
         </button>
       </div>
 
-      {/* 1. Stat Summary Cards */}
       <StatCards m={m} />
-
-      {/* 2. AI Risk Watch Banner */}
       <RiskWatch m={m} go={go} />
 
-      {/* 3. Middle Section: Farms Table & Today's Recommendations */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7">
-          <FarmsTable farms={farms} onOpen={onOpenFarm} go={go} />
+          <FarmsTable farms={farmRows} onOpen={onOpenFarm} go={go} />
         </div>
         <div className="lg:col-span-5">
           <TodayRecs go={go} />
         </div>
       </div>
 
-      {/* 4. Bottom Section: Outlook, Activity & Impact */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <HarvestOutlook />
-        <GridActivity />
+        <GridActivity items={activity} />
         <EnvImpact />
       </div>
     </div>

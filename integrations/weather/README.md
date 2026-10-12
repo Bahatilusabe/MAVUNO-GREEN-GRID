@@ -1,6 +1,6 @@
 # Integrations - Weather Module
 
-**Implemented:** `WeatherService.get_current_weather` makes a metric OpenWeatherMap API request. Forecast and historical-weather methods are placeholders (`pass`). The service requires `requests` and an API key; callers should handle request failures and validate provider responses.
+**Implemented:** `WeatherService.get_current_weather` and `get_forecast` use Open-Meteo. Open-Meteo does not require an API key. Historical-weather support is not implemented; callers should handle request failures and validate provider responses.
 
 Weather integration for MAVUNO-GREEN-GRID platform.
 
@@ -18,7 +18,7 @@ Integrates weather data from external services.
 
 ## Supported Providers
 
-- OpenWeatherMap
+- Open-Meteo
 - WeatherAPI
 - NOAA
 

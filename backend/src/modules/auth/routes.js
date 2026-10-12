@@ -41,10 +41,10 @@ router.post("/login", async (req, res, next) => {
       return res.status(403).json({ error: `Account is ${user.status}` });
     }
 
-    const token = jwt.sign(
+        const token = jwt.sign(
       { sub: user.id, id: user.id, role: user.role, email: user.email },
       config.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: config.JWT_EXPIRES_IN }
     );
 
     res.json({

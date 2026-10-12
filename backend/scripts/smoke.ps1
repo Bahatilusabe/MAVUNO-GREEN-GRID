@@ -6,9 +6,9 @@ $login = Invoke-RestMethod "$base/auth/login" -Method Post -ContentType "applica
   -Body '{"email":"samuel@mavuno.test","password":"Password123!"}'
 Write-Host "login user:" ($login.user | ConvertTo-Json -Compress)
 
-Invoke-RestMethod "$base/overview" -Headers @{ Authorization = "Bearer $($login.token)" } |
+Invoke-RestMethod "$base/overview" -Headers @{ Authorization = "******" } |
   ConvertTo-Json -Depth 5
 
 Write-Host "weather:"
-Invoke-RestMethod "$base/weather/forecast?lat=-0.5186&lon=37.3675" -Headers @{ Authorization = "Bearer $($login.token)" } |
+Invoke-RestMethod "$base/weather/forecast?latitude=-0.5186&longitude=37.3675" -Headers @{ Authorization = "******" } |
   ConvertTo-Json -Depth 3
