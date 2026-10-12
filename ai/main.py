@@ -3,13 +3,14 @@ MAVUNO-X FastAPI Backend
 Run this server with: python main.py
 """
 import os
+import shutil
 import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -252,6 +253,39 @@ async def text_to_speech(text: str = "", lang: str = "sw-KE"):
     await communicate.save(str(out_path))
     return FileResponse(out_path, media_type="audio/mpeg", filename=f"mavuno-{token}.mp3")
 
+@app.post("/api/v1/analyze-crop")
+async def analyze_crop_media(
+    file: UploadFile = File(...),
+    lat: float = Form(None),
+    lng: float = Form(None)
+):
+    """
+    Receives an uploaded image or video frame of a crop, saves it temporarily,
+    and runs diagnostic analysis.
+    """
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    try:
+        # Import your diagnostic tool
+        from tools.plant_health import diagnose_crop
+        diagnosis = diagnose_crop(file_path)
+        
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "coordinates": {"lat": lat, "lng": lng},
+            "diagnosis": diagnosis
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 if __name__ == "__main__":
     # Render/Docker inject PORT; locally it falls back to 8010
