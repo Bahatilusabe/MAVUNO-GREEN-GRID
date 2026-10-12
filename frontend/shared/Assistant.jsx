@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, Sprout, Bot, User, Mic, MicOff, Volume2, VolumeX, Lightbulb } from "lucide-react";
 import { PROMPTS } from "./data";
+import { api, getToken } from "../src/lib/api";
 
 const GREETING_PATTERNS = [
   "hello", "hi", "hey", "hujambo", "habari", "mambo", "sasa", "good morning",
@@ -69,11 +70,11 @@ const selectPreferredVoice = (lang, voices = []) => {
   );
 };
 
-export default function Assistant({ className = "", selectedPin = null }) {
+export default function Assistant({ className = "", farmId }) {
   const [msgs, setMsgs] = useState([
-    { 
-      from: "ai", 
-      text: "Hi there! I'm your MAVUNO AI. I'm here to help you make better decisions and reduce crop loss. Feel free to ask me any questions you have about your farm!" 
+    {
+      from: "ai",
+      text: "Hi there! I'm your MAVUNO AI. I'm here to help you make better decisions and reduce crop loss. Feel free to ask me any questions you have about your farm!"
     }
   ]);
   const [text, setText] = useState("");
@@ -83,6 +84,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
   const [voiceLanguage, setVoiceLanguage] = useState("en-US");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const recognitionRef = useRef(null);
+  const sendRef = useRef(null);
   const activeLanguageLabel = voiceLanguage === "sw-KE" ? "Swahili" : "English";
 
   const voiceFriendlyText = (textToSpeak) => {
@@ -137,18 +139,23 @@ export default function Assistant({ className = "", selectedPin = null }) {
     if (!speechText) return;
 
     if (voiceLanguage === "sw-KE") {
+      let audioUrl;
       try {
-        const response = await fetch(`/api/v1/tts?lang=sw-KE&text=${encodeURIComponent(speechText)}`);
-        if (!response.ok) throw new Error("TTS failed");
+        const token = getToken();
+        const response = await fetch(
+          `/api/tts?lang=sw-KE&text=${encodeURIComponent(speechText.slice(0, 500))}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        if (!response.ok) throw new Error(`TTS failed (${response.status})`);
         const blob = await response.blob();
-        const audioUrl = URL.createObjectURL(blob);
+        audioUrl = URL.createObjectURL(blob);
         const audio = new Audio(audioUrl);
-        audio.lang = "sw-KE";
         audio.volume = 1;
         audio.onended = () => URL.revokeObjectURL(audioUrl);
-        audio.play();
+        await audio.play();
         return;
       } catch (error) {
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
         console.warn("Swahili TTS backend failed, falling back to browser voice:", error);
       }
     }
@@ -200,7 +207,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
       setText(transcript);
       setIsListening(false);
       recognition.stop();
-      send(transcript);
+      sendRef.current?.(transcript); // always the latest send, never a stale first-render copy
     };
 
     recognition.onend = () => {
@@ -279,23 +286,21 @@ export default function Assistant({ className = "", selectedPin = null }) {
 
     let answer;
     try {
-      const response = await fetch("/api/v1/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: t,
-          lat: selectedPin?.lat,
-          lng: selectedPin?.lng,
-        }),
+      // The backend adds the saved farm location, crops and nearby places itself
+      const data = await api.post("/chat", {
+        message: t,
+        farmId: typeof farmId === "string" ? farmId : undefined,
       });
-      const data = await response.json();
-      if (!response.ok || data.status !== "success") {
-        throw new Error(data.reply || `Backend returned HTTP ${response.status}`);
-      }
       answer = data.reply || "I couldn't generate a response just now.";
     } catch (error) {
       console.error("Failed to get a MAVUNO AI response:", error);
-      answer = "I couldn't connect to the AI service. Please try again in a moment.";
+      if (error?.status === 401) {
+        answer = "Please sign in to chat with MAVUNO AI.";
+      } else if (error?.status === 429) {
+        answer = "You're sending messages too quickly. Please wait a moment and try again.";
+      } else {
+        answer = "I couldn't connect to the AI service. Please try again in a moment.";
+      }
     } finally {
       setLoading(false);
     }
@@ -306,10 +311,11 @@ export default function Assistant({ className = "", selectedPin = null }) {
     ]);
     if (answer) await speakAnswer(answer);
   };
+  sendRef.current = send;
 
   return (
     <aside className={`bg-gradient-to-b from-background via-card to-card rounded-2xl border border-brand-200/70 shadow-lg flex flex-col h-full overflow-hidden ring-1 ring-white/60 ${className}`}>
-      
+
       {/* Header */}
       <div className="p-4 sm:p-5 border-b border-brand-100 bg-gradient-to-r from-brand-50 via-background to-card flex items-center gap-3">
         <div className="p-2.5 bg-gradient-to-br from-brand-200 to-brand-100 text-brand-700 rounded-xl flex-shrink-0 shadow-sm ring-2 ring-white">
@@ -333,7 +339,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
                 </div>
               )}
               <div className={`p-3.5 rounded-2xl text-sm leading-relaxed max-w-[86%] shadow-sm ${
-                isAi 
+                isAi
                   ? "bg-white/90 border border-brand-100 text-foreground rounded-tl-md"
                   : "bg-gradient-to-br from-brand-700 to-brand-800 text-primary-foreground rounded-tr-md"
               }`}>
@@ -352,7 +358,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
       {/* Suggested Prompts Section - Only show if no user messages exist yet */}
       {msgs.length <= 1 && (
         <div className="px-4 py-3 bg-gradient-to-b from-background to-muted border-t border-brand-100 space-y-3.5">
-          
+
           {/* Awareness Tip */}
           <div className="flex items-start gap-2 p-3 bg-brand-50/70 rounded-xl border border-brand-100 shadow-sm">
             <Lightbulb className="text-brand-600 shrink-0" size={18} aria-hidden="true" />
@@ -377,7 +383,7 @@ export default function Assistant({ className = "", selectedPin = null }) {
       )}
 
       {/* Input Form */}
-      <form 
+      <form
         className="p-3.5 bg-gradient-to-r from-card to-brand-50/30 border-t border-brand-100 flex items-center gap-2.5 shadow-sm"
         onSubmit={(e) => { e.preventDefault(); send(); }}
       >

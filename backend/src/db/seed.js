@@ -15,7 +15,8 @@ await initDb();
 const connection = await getClient();
 
 try {
-  // Delete in reverse dependency order
+  // Delete in reverse dependency order. geo_places and geo_fetches are a shared cache of public
+  // map data, not user data, so a reseed keeps them.
   const tables = ["notifications", "match_requests", "crops", "farms", "partners", "users"];
   for (const table of tables) {
     await connection.execute(`DELETE FROM ${table}`);
@@ -64,9 +65,10 @@ try {
     );
   }
 
+  // Approximate coordinates for the demo partner. Use the real site coordinates outside a demo.
   await connection.execute(
-    `INSERT INTO partners (user_id, name, type, county, price_per_kg, capacity_kg, status)
-     VALUES (:1, 'Kagio Juice Processors', 'processor', 'Kirinyaga', 20, 2000, 'approved')`,
+    `INSERT INTO partners (user_id, name, type, county, lat, lng, price_per_kg, capacity_kg, status)
+     VALUES (:1, 'Kagio Juice Processors', 'processor', 'Kirinyaga', -0.668, 37.317, 20, 2000, 'approved')`,
     [kagioUser]
   );
 

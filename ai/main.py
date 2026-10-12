@@ -98,6 +98,13 @@ def detect_farmer_language(message: str) -> str:
     return "English"
 
 
+class NearbyPlace(BaseModel):
+    name: str
+    kind: str = "public map site"
+    distance_km: float
+    price_kes_per_kg: Optional[float] = None
+
+
 class ChatQuery(BaseModel):
     message: str
     lat: Optional[float] = None
@@ -105,6 +112,42 @@ class ChatQuery(BaseModel):
     farm_name: Optional[str] = "Oloitiptip Family Farm"
     crop: Optional[str] = "tomatoes and kale"
     size_acres: Optional[float] = 2.5
+    # Filled in by the backend from its cached map data. The AI never searches maps itself.
+    nearby_type: Optional[str] = None
+    nearby: Optional[list[NearbyPlace]] = None
+
+
+def describe_nearby(query: ChatQuery) -> str:
+    """Turn the backend's verified nearby-places list into a prompt sentence."""
+    if query.nearby is None:
+        return ""
+
+    label = {
+        "market": "markets and buyers",
+        "cold_store": "cold storage sites",
+        "water": "water sources",
+    }.get(query.nearby_type or "", "places")
+
+    if not query.nearby:
+        return (
+            f"No verified {label} were found within 25 kilometres of the farm on the map. "
+            "If the farmer asks about nearby places, say so plainly and suggest asking local "
+            "farmers or the county office. Never invent places. "
+        )
+
+    lines = []
+    for place in query.nearby[:5]:
+        line = f"{place.name} ({place.kind}, about {place.distance_km} km away"
+        if place.price_kes_per_kg is not None:
+            line += f", pays about {place.price_kes_per_kg} Kenya shillings per kilogram"
+        lines.append(line + ")")
+
+    return (
+        f"Verified {label} near the farm from map data (distances are straight-line): "
+        + "; ".join(lines)
+        + ". When asked about nearby places, recommend only from this list. "
+        "Do not invent places, prices or opening hours that are not listed. "
+    )
 
 
 @app.post("/api/v1/chat")
@@ -114,6 +157,7 @@ def chat_endpoint(query: ChatQuery):
     location_label = "at the selected farm location" if query.lat else "in your region"
     today_str = datetime.now().strftime("%A, %B %d, %Y")
     farmer_language = detect_farmer_language(query.message)
+    nearby_text = describe_nearby(query)
 
     messages = [
         {
@@ -126,6 +170,7 @@ def chat_endpoint(query: ChatQuery):
                 f"a {query.size_acres}-acre farm primarily growing {query.crop}. "
                 f"Current local weather {location_label}: "
                 f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
+                f"{nearby_text}"
                 "Language rule: if the farmer's question is in Kiswahili or Sheng, answer in Kiswahili or a natural Kiswahili-Sheng mix. "
                 "If the farmer writes in English, answer in clear English. If the farmer uses English slang or casual wording, keep it natural and conversational, not robotic. "
                 "Do not force English when the user asks in Swahili or Sheng. "
