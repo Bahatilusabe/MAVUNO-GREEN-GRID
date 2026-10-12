@@ -31,6 +31,8 @@ const withTimeout = (promise, ms) => {
 };
 
 async function farmContext(userId, farmId) {
+  if (!userId) return null;
+
   const { rows } = await query(
     `SELECT f.id AS "id", f.name AS "name", f.area_ha AS "areaHa", f.lat AS "lat", f.lng AS "lng"
        FROM farms f
@@ -87,7 +89,7 @@ router.post("/", async (req, res) => {
   const { message, farmId } = parsed.data;
 
   const payload = { message };
-  const ctx = await farmContext(req.user.id, farmId);
+  const ctx = await farmContext(req.user?.id, farmId);
   if (ctx) {
     payload.farm_name = ctx.name;
     if (ctx.lat != null && ctx.lng != null) {

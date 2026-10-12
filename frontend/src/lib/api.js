@@ -33,7 +33,11 @@ async function request(path, options = {}) {
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(body?.error || body?.message || `API request failed with HTTP ${response.status}`);
+    const error = new Error(
+      body?.error || body?.message || `API request failed with HTTP ${response.status}`
+    );
+    error.status = response.status;
+    throw error;
   }
 
   return body;
