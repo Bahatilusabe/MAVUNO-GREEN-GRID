@@ -85,6 +85,7 @@ export default function Opportunities({ farm }) {
   const [draftFor, setDraftFor] = useState(null);
   const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [transporting, setTransporting] = useState({}); // match_id -> boolean
   const handleRoute = useCallback((summary) => setRouteInfo(summary), []);
 
   const origin = farmLocation(farm);
@@ -246,6 +247,22 @@ export default function Opportunities({ farm }) {
     }
   };
 
+  const requestTransport = async (match, siteName) => {
+    setTransporting((prev) => ({ ...prev, [match.id]: true }));
+    try {
+      await api.post('/transport/from-match', {
+        match_id: match.id,
+      });
+      toast.success(`Transport requested for ${siteName}!`, {
+        description: `A driver will be assigned to pick up your ${match.crop}.`
+      });
+    } catch (e) {
+      toast.error(e.message || "Failed to request transport");
+    } finally {
+      setTransporting((prev) => ({ ...prev, [match.id]: false }));
+    }
+  };
+
   const notice = {
     loading: "Loading live opportunities…",
     sample: "Sample data shown. Sign in and save a farm location for live results.",
@@ -309,10 +326,11 @@ export default function Opportunities({ farm }) {
                     <div className="min-w-0 space-y-1">
                       <strong className="block text-base font-bold text-gray-900 truncate">{o.name}</strong>
                       <small className="text-xs text-gray-600 block truncate font-medium">
-                        {o.type} • about {o.km} km away • {o.cap}
+                        {o.type} about {o.km} km away • {o.cap}
                       </small>
                       <small className="text-xs text-green-800 font-semibold block">
-                        {o.price} • {o.note}
+                        {o.price}
+                        {o.note}
                       </small>
                       {info && (
                         <small className="text-xs text-blue-700 font-semibold block">
@@ -358,6 +376,13 @@ export default function Opportunities({ farm }) {
                             Cancel
                           </button>
                         )}
+                        <button
+                          className="px-3 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 flex items-center gap-1"
+                          onClick={() => requestTransport(match, o.name)}
+                          disabled={transporting[match.id]}
+                        >
+                          {transporting[match.id] ? "Requesting..." : "Request Transport"}
+                        </button>
                       </>
                     ) : (
                       <button
