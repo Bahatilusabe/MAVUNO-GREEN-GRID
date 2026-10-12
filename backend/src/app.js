@@ -2,9 +2,13 @@ import express from "express";
 import cors from "cors";
 
 import { requireAuth } from "./middleware/auth.js";
+<<<<<<< HEAD
 
 import { rateLimit } from "./middleware/rateLimit.js";
 
+=======
+import { rateLimit } from "./middleware/rateLimit.js";
+>>>>>>> e07defa (feat: add matches, opportunities, places, and TTS modules, update AI assistant)
 import authRoutes from "./modules/auth/routes.js";
 import farmRoutes from "./modules/farms/routes.js";
 import cropRoutes from "./modules/crops/routes.js";
