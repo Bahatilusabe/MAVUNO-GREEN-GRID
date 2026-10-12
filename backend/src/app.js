@@ -19,6 +19,7 @@ import routingRoutes from "./modules/routing/routes.js";
 import placesRoutes from "./modules/places/routes.js";
 import matchRoutes from "./modules/matches/routes.js";
 import opportunitiesRoutes from "./modules/opportunities/routes.js";
+import surplusAlertRoutes from "./modules/surplus-alerts/routes.js";
 
 export function createApp() {
   const app = express();
@@ -34,12 +35,12 @@ export function createApp() {
   const v1Router = express.Router();
   v1Router.get("/health", (req, res) => res.json({ ok: true }));
 
-  // Public
+  // Public routes
   v1Router.use("/auth", authRoutes);
   v1Router.use("/weather", weatherRoutes);
   v1Router.use("/route", routingRoutes);
 
-  // Own auth + role + ownership checks inside the module
+  // These modules enforce their own authentication, role, and ownership checks.
   v1Router.use("/farms", farmRoutes);
   v1Router.use("/crops", cropRoutes);
   v1Router.use("/overview", overviewRoutes);
@@ -47,23 +48,17 @@ export function createApp() {
   v1Router.use("/matches", matchRoutes);
   v1Router.use("/opportunities", opportunitiesRoutes);
 
-  // AI-backed chat is available to guests; authenticated users additionally receive farm context.
+  // AI chat supports guests and uses farm context when the request is authenticated.
   v1Router.use("/chat", rateLimit({ max: 20 }), chatRoutes);
   v1Router.use("/tts", requireAuth, rateLimit({ max: 30 }), ttsRoutes);
+  v1Router.use("/surplus-alerts", requireAuth, surplusAlertRoutes);
 
-  // Not yet ported or reviewed: authentication is enforced here until each module has its own checks
+  // Authentication is enforced here until each module has its own checks.
   v1Router.use("/resources", requireAuth, resourceRoutes);
   v1Router.use("/interventions", requireAuth, interventionRoutes);
   v1Router.use("/transactions", requireAuth, transactionRoutes);
   v1Router.use("/transport", requireAuth, transportRoutes);
   v1Router.use("/storage", requireAuth, storageRoutes);
-
-  // Placeholder data until the AI surplus proxy exists
-  v1Router.get("/surplus-alerts", (req, res) => {
-    res.json([
-      { id: 1, crop: "Tomatoes", surplus_kg: 1800, risk_level: "High", message: "Expected surplus of 1,800 kg. Act within 72 hours." },
-    ]);
-  });
 
   app.use("/api", v1Router);
   app.use("/api/v1", v1Router);
@@ -79,7 +74,7 @@ export function createApp() {
       console.warn(`${req.method} ${req.originalUrl} -> ${status}: ${err.message}`);
     }
 
-    // In production a 5xx never leaks internals such as ORA- messages, table names or paths
+    // In production a 5xx never leaks internals such as ORA- messages, table names or paths.
     const message =
       status >= 500 && process.env.NODE_ENV === "production"
         ? "Internal Server Error"
