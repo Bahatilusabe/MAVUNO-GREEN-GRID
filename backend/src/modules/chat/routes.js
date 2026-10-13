@@ -29,6 +29,11 @@ const parseChatUpload = (req, res, next) => {
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
   farmId: z.string().min(1).max(64).optional(),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+}).refine((data) => (data.lat === undefined) === (data.lng === undefined), {
+  message: "lat and lng must be provided together",
+  path: ["lat"],
 });
 
 // English and Swahili cues for "find something near my farm". First match wins.
@@ -144,17 +149,20 @@ router.post("/", parseChatUpload, async (req, res) => {
 
   const payload = { message };
   const ctx = await farmContext(req.user?.id, farmId);
+  // Prefer the farm record; use coordinates sent from the selected live farm as a
+  // fallback when the API's farm lookup cannot provide its saved pin.
+  const lat = ctx?.lat ?? parsed.data.lat;
+  const lng = ctx?.lng ?? parsed.data.lng;
   if (ctx) {
     payload.farm_name = ctx.name;
-    if (ctx.lat != null && ctx.lng != null) {
-      payload.lat = Number(ctx.lat);
-      payload.lng = Number(ctx.lng);
-    }
     if (ctx.crops.length) payload.crop = ctx.crops.join(" and ");
     if (ctx.areaHa) payload.size_acres = Number((ctx.areaHa / 0.4047).toFixed(1));
-
   }
-  const nearby = await nearbyFor(ctx, message);
+  if (lat != null && lng != null) {
+    payload.lat = Number(lat);
+    payload.lng = Number(lng);
+  }
+  const nearby = await nearbyFor({ ...ctx, lat, lng }, message);
   if (nearby) {
     payload.nearby_type = nearby.type;
     payload.nearby = nearby.items;

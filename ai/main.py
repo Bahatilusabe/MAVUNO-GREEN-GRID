@@ -4,6 +4,7 @@ Run this server with: python main.py
 """
 import os
 import json
+import re
 import shutil
 import tempfile
 import uuid
@@ -99,6 +100,34 @@ def detect_farmer_language(message: str) -> str:
     if any(marker in lowered for marker in english_slang_markers):
         return "English slang"
     return "English"
+
+
+def is_weather_question(message: str) -> bool:
+    return bool(re.search(
+        r"\b(weather|forecast|rain|rainfall|temperature|wind|sunny|cloudy|mvua|hali ya hewa|joto)\b",
+        message,
+        re.IGNORECASE,
+    ))
+
+
+def weather_code_description(code: Optional[int]) -> str:
+    if code is None:
+        return ""
+    if code == 0:
+        return "clear"
+    if code in (1, 2, 3):
+        return "partly cloudy to overcast"
+    if code in (45, 48):
+        return "foggy"
+    if code in (51, 53, 55, 56, 57):
+        return "drizzle"
+    if code in (61, 63, 65, 66, 67, 80, 81, 82):
+        return "rain likely"
+    if code in (71, 73, 75, 77, 85, 86):
+        return "snow"
+    if code in (95, 96, 99):
+        return "thunderstorms possible"
+    return ""
 
 
 class NearbyPlace(BaseModel):
@@ -315,10 +344,56 @@ async def chat_endpoint(request: Request):
     elif weather.get("source") == "fallback":
         weather_context = "The current weather provider was unavailable; do not present fallback values as live readings."
     else:
+        forecast_context = ""
+        if weather.get("forecast"):
+            daily_forecast = "; ".join(
+                f"{day['date']}: high {day['temperature_max_c']}°C, "
+                f"rain probability {day['precipitation_probability_pct']}%"
+                for day in weather["forecast"]
+            )
+            forecast_context = f" Five-day Open-Meteo forecast at these coordinates: {daily_forecast}."
         weather_context = (
             f"Current weather at the supplied farm coordinates ({weather.get('source', 'weather service')}): "
             f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of precipitation."
+            f"{forecast_context}"
         )
+
+    # Weather answers come directly from the provider data. This avoids the model
+    # asking for a location or inventing a forecast when the farm pin is available.
+    if is_weather_question(query.message):
+        if not has_farm_coordinates:
+            return {
+                "status": "success",
+                "reply": "I don’t have a location pin for the selected farm yet, so I can’t give a farm-specific forecast. Add the farm’s location in My Farms, then ask me again.",
+            }
+        if weather.get("source") == "fallback":
+            return {
+                "status": "success",
+                "reply": "I couldn’t reach Open-Meteo just now, so I can’t give you a reliable live forecast. Please try again shortly.",
+            }
+
+        forecast = weather.get("forecast") or []
+        if forecast:
+            forecast_lines = []
+            for day in forecast:
+                description = weather_code_description(day.get("weather_code"))
+                high = day.get("temperature_max_c")
+                rain_chance = day.get("precipitation_probability_pct")
+                parts = [day["date"]]
+                if high is not None:
+                    parts.append(f"high around {high}°C")
+                if rain_chance is not None:
+                    parts.append(f"rain chance {rain_chance}%")
+                if description:
+                    parts.append(description)
+                forecast_lines.append(" — ".join([parts[0], ", ".join(parts[1:])]))
+            reply = "Here’s the five-day forecast for your selected farm, from Open-Meteo:\n" + "\n".join(forecast_lines)
+        else:
+            reply = (
+                f"For your selected farm, Open-Meteo currently reports {weather['temperature_c']}°C "
+                f"and {weather['rainfall_mm']} mm of precipitation. A multi-day forecast is unavailable right now."
+            )
+        return {"status": "success", "reply": reply}
 
     farm_profile = []
     if query.farm_name:
@@ -370,6 +445,7 @@ async def chat_endpoint(request: Request):
                 "Voice guidance for spoken replies: speak slowly, one sentence at a time, with a natural pause between thoughts. Keep the answer short enough to listen to comfortably. Do not use markdown, bullets, symbols, emojis, or long dense paragraphs. Use words instead of shorthand, such as 'tonnes' instead of 't', and 'Kenya shillings' instead of 'KES'. "
                 "If the answer is read aloud, make it easy to listen to: short sentences, plain language, no jargon, no forced formality, and no long lists. Use everyday farmer-friendly wording. "
                 "Use the current date and only the farm profile, weather, and tool readings actually supplied. "
+                "When the supplied weather context includes a forecast and the farmer asks about upcoming weather, answer from that forecast; do not claim that weather tools or real-time data are unavailable. "
                 "Crops in the registered profile are planned or active crops, not crop history. "
                 "Open-Meteo soil moisture is a modeled estimate for the top 0–1 cm, not a direct root-zone measurement; "
                 "a zero reading alone does not prove the whole field is dry. Recommend checking moisture at root depth before irrigation or planting decisions. "

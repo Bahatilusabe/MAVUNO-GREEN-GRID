@@ -76,7 +76,7 @@ const selectPreferredVoice = (lang, voices = []) => {
   );
 };
 
-export default function Assistant({ className = "", farmId }) {
+export default function Assistant({ className = "", farmId, farmLat, farmLng }) {
   const [msgs, setMsgs] = useState([
     {
       from: "ai",
@@ -300,6 +300,10 @@ export default function Assistant({ className = "", farmId }) {
         const formData = new FormData();
         formData.append("message", t);
         if (typeof farmId === "string") formData.append("farmId", farmId);
+        if (Number.isFinite(farmLat) && Number.isFinite(farmLng)) {
+          formData.append("lat", String(farmLat));
+          formData.append("lng", String(farmLng));
+        }
         formData.append("media", attachment);
 
         const token = getToken();
@@ -328,6 +332,8 @@ export default function Assistant({ className = "", farmId }) {
         data = await api.post("/chat", {
           message: t,
           farmId: typeof farmId === "string" ? farmId : undefined,
+          lat: Number.isFinite(farmLat) ? farmLat : undefined,
+          lng: Number.isFinite(farmLng) ? farmLng : undefined,
         });
       }
       answer = data.reply || "I couldn't generate a response just now.";

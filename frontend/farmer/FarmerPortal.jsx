@@ -204,7 +204,13 @@ export default function FarmerPortal({ initialView = "overview" }) {
           {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
         </select>
       }
-      aside={<Assistant farmId={!demo && typeof farm?.id === "string" ? farm.id : undefined} />}
+      aside={(
+        <Assistant
+          farmId={!demo && typeof farm?.id === "string" ? farm.id : undefined}
+          farmLat={!demo && farm?.lat != null && Number.isFinite(Number(farm.lat)) ? Number(farm.lat) : undefined}
+          farmLng={!demo && farm?.lng != null && Number.isFinite(Number(farm.lng)) ? Number(farm.lng) : undefined}
+        />
+      )}
     >
       <div className="space-y-6">
         {demo && (
