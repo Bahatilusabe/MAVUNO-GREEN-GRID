@@ -373,6 +373,7 @@ async def chat_endpoint(request: Request):
             }
 
         forecast = weather.get("forecast") or []
+        farm_label = query.farm_name or "your selected farm"
         if forecast:
             forecast_lines = []
             for day in forecast:
@@ -387,10 +388,10 @@ async def chat_endpoint(request: Request):
                 if description:
                     parts.append(description)
                 forecast_lines.append(" — ".join([parts[0], ", ".join(parts[1:])]))
-            reply = "Here’s the five-day forecast for your selected farm, from Open-Meteo:\n" + "\n".join(forecast_lines)
+            reply = f"Here’s the five-day forecast for {farm_label}, from Open-Meteo:\n" + "\n".join(forecast_lines)
         else:
             reply = (
-                f"For your selected farm, Open-Meteo currently reports {weather['temperature_c']}°C "
+                f"For {farm_label}, Open-Meteo currently reports {weather['temperature_c']}°C "
                 f"and {weather['rainfall_mm']} mm of precipitation. A multi-day forecast is unavailable right now."
             )
         return {"status": "success", "reply": reply}

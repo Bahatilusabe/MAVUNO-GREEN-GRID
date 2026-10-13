@@ -69,6 +69,10 @@ export default function FarmerPortal({ initialView = "overview" }) {
 
   const firstName = getUser()?.full_name?.split(" ")[0] || "Samuel";
   const farm = farms.find((f) => f.id === farmId) || farms[0];
+  const hasLiveFarmPin = farm?.lat != null && farm?.lng != null
+    && Number.isFinite(Number(farm.lat)) && Number.isFinite(Number(farm.lng));
+  const mockAssistantFarm = INITIAL_FARMS[0];
+  const assistantFarm = hasLiveFarmPin ? farm : mockAssistantFarm;
 
   const go = (v) => { setView(v); setAdding(false); };
   const openFarm = (id) => { setFarmId(id); setView("farm"); };
@@ -207,8 +211,9 @@ export default function FarmerPortal({ initialView = "overview" }) {
       aside={(
         <Assistant
           farmId={!demo && typeof farm?.id === "string" ? farm.id : undefined}
-          farmLat={!demo && farm?.lat != null && Number.isFinite(Number(farm.lat)) ? Number(farm.lat) : undefined}
-          farmLng={!demo && farm?.lng != null && Number.isFinite(Number(farm.lng)) ? Number(farm.lng) : undefined}
+          farmLat={Number(assistantFarm.coords.split(",")[0].trim())}
+          farmLng={Number(assistantFarm.coords.split(",")[1].trim())}
+          farmName={hasLiveFarmPin ? farm.name : `${mockAssistantFarm.name} (demo location)`}
         />
       )}
     >

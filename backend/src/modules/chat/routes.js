@@ -29,6 +29,7 @@ const parseChatUpload = (req, res, next) => {
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
   farmId: z.string().min(1).max(64).optional(),
+  farmName: z.string().trim().min(1).max(120).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
 }).refine((data) => (data.lat === undefined) === (data.lng === undefined), {
@@ -154,10 +155,13 @@ router.post("/", parseChatUpload, async (req, res) => {
   const lat = ctx?.lat ?? parsed.data.lat;
   const lng = ctx?.lng ?? parsed.data.lng;
   if (ctx) {
-    payload.farm_name = ctx.name;
+    payload.farm_name = ctx.lat != null && ctx.lng != null
+      ? ctx.name
+      : (parsed.data.farmName ?? ctx.name);
     if (ctx.crops.length) payload.crop = ctx.crops.join(" and ");
     if (ctx.areaHa) payload.size_acres = Number((ctx.areaHa / 0.4047).toFixed(1));
   }
+  else if (parsed.data.farmName) payload.farm_name = parsed.data.farmName;
   if (lat != null && lng != null) {
     payload.lat = Number(lat);
     payload.lng = Number(lng);

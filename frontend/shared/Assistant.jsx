@@ -76,7 +76,7 @@ const selectPreferredVoice = (lang, voices = []) => {
   );
 };
 
-export default function Assistant({ className = "", farmId, farmLat, farmLng }) {
+export default function Assistant({ className = "", farmId, farmLat, farmLng, farmName }) {
   const [msgs, setMsgs] = useState([
     {
       from: "ai",
@@ -300,6 +300,7 @@ export default function Assistant({ className = "", farmId, farmLat, farmLng }) 
         const formData = new FormData();
         formData.append("message", t);
         if (typeof farmId === "string") formData.append("farmId", farmId);
+        if (typeof farmName === "string") formData.append("farmName", farmName);
         if (Number.isFinite(farmLat) && Number.isFinite(farmLng)) {
           formData.append("lat", String(farmLat));
           formData.append("lng", String(farmLng));
@@ -332,6 +333,7 @@ export default function Assistant({ className = "", farmId, farmLat, farmLng }) 
         data = await api.post("/chat", {
           message: t,
           farmId: typeof farmId === "string" ? farmId : undefined,
+          farmName: typeof farmName === "string" ? farmName : undefined,
           lat: Number.isFinite(farmLat) ? farmLat : undefined,
           lng: Number.isFinite(farmLng) ? farmLng : undefined,
         });
