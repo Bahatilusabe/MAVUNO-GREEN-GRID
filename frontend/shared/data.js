@@ -86,9 +86,9 @@ import { getToken } from "../src/lib/api";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-export async function fetchWeatherForecast({ latitude = -0.5186, longitude = 37.3675 } = {}) {
+export async function fetchWeatherForecast({ latitude = -0.5186, longitude = 37.3675, signal } = {}) {
   const params = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) });
-  const response = await fetch(`${API_URL}/weather/forecast?${params}`);
+  const response = await fetch(`${API_URL}/weather/forecast?${params}`, { signal });
   if (!response.ok) {
     throw new Error(`Weather service returned HTTP ${response.status}`);
   }

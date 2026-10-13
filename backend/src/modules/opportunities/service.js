@@ -45,12 +45,12 @@ async function nearbyPartners(farm) {
   const dLat = PARTNER_RADIUS_KM / 111;
   const dLng = PARTNER_RADIUS_KM / (111 * Math.max(Math.cos(toRad(farm.lat)), 0.01));
   const { rows } = await query(
-    `SELECT id AS "id", name AS "name", type AS "type", lat AS "lat", lng AS "lng",
-            price_per_kg AS "pricePerKg", capacity_kg AS "capacityKg"
-       FROM partners
-      WHERE status = 'approved' AND accepting = 1
-        AND lat IS NOT NULL AND lng IS NOT NULL
-        AND lat BETWEEN :1 AND :2 AND lng BETWEEN :3 AND :4`,
+    `SELECT p.id AS "id", p.name AS "name", p.type AS "type", p.lat AS "lat", p.lng AS "lng",
+            p.price_per_kg AS "pricePerKg", p.capacity_kg AS "capacityKg", u.phone AS "phone"
+       FROM partners p LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.status = 'approved' AND p.accepting = 1
+        AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+        AND p.lat BETWEEN :1 AND :2 AND p.lng BETWEEN :3 AND :4`,
     [farm.lat - dLat, farm.lat + dLat, farm.lng - dLng, farm.lng + dLng]
   );
   return rows.map((p) => ({
@@ -62,6 +62,8 @@ async function nearbyPartners(farm) {
     lng: Number(p.lng),
     pricePerKg: p.pricePerKg,
     capacityKg: p.capacityKg,
+    phone: p.phone ?? null,
+    buyerType: p.type,
   }));
 }
 
@@ -96,6 +98,11 @@ async function publicSites(farm) {
         type: uiType,
         lat: Number(r.lat),
         lng: Number(r.lng),
+        phone: r.phone ?? null,
+        website: r.website ?? null,
+        address: r.address ?? null,
+        buyerType: r.buyerType ?? null,
+        mapUrl: r.mapUrl ?? null,
         pricePerKg: null,
         capacityKg: null,
       });

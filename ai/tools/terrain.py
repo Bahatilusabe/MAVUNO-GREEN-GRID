@@ -16,7 +16,7 @@ def get_elevation(lat: float, lng: float, mapbox_token: str = None) -> float:
     # Query the Mapbox Terrain vector contours (mapbox-terrain-v2)
     url = f"https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/{lng},{lat}.json?access_token={token}"
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=15)
     if response.status_code != 200:
         raise RuntimeError(f"Mapbox API Error ({response.status_code}): {response.text}")
 
@@ -24,8 +24,7 @@ def get_elevation(lat: float, lng: float, mapbox_token: str = None) -> float:
     features = data.get("features", [])
     
     if not features:
-        # Fallback default if coordinates fall outside indexed contour bounds
-        return 1600.0  
+        return None
 
     # Extract the elevation ('ele') property from the closest contour feature
     for feature in features:

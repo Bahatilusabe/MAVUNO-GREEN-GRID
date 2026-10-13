@@ -5,6 +5,27 @@ import cv2
 from openai import OpenAI
 
 
+def extract_representative_frame(video_path: str, output_path: str) -> bool:
+    """Save a middle frame for image-only crop diagnosis APIs."""
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        cap.release()
+        return False
+
+    try:
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if frame_count <= 0:
+            return False
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count // 2)
+        success, frame = cap.read()
+        if not success:
+            return False
+        frame = cv2.resize(frame, (640, 360))
+        return bool(cv2.imwrite(output_path, frame))
+    finally:
+        cap.release()
+
+
 def analyze_crop_video(
     video_path: str,
     prompt: str = "Analyze this farm video for crop health, weeds, wilting, or pest damage.",

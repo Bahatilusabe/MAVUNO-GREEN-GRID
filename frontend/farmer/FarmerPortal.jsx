@@ -204,7 +204,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
           {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
         </select>
       }
-      aside={<Assistant />}
+      aside={<Assistant farmId={!demo && typeof farm?.id === "string" ? farm.id : undefined} />}
     >
       <div className="space-y-6">
         {demo && (

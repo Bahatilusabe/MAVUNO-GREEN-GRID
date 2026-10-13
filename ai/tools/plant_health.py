@@ -30,7 +30,7 @@ def diagnose_crop(image_path: str, api_key: str = None) -> dict:
             "details": "disease_details,treatment,cause"
         }
         
-        response = requests.post(url, headers=headers, files=files, data=data)
+        response = requests.post(url, headers=headers, files=files, data=data, timeout=30)
 
     if response.status_code != 201 and response.status_code != 200:
         raise RuntimeError(f"Kindwise API Error ({response.status_code}): {response.text}")

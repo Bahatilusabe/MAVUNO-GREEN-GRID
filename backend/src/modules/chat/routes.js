@@ -9,7 +9,7 @@ const router = Router();
 const AI_BASE = process.env.AI_BASE_URL || "http://localhost:8010/api/v1";
 const TIMEOUT_MS = Number(process.env.AI_CHAT_TIMEOUT_MS ?? 90_000);
 const MEDIA_TIMEOUT_MS = Number(process.env.AI_MEDIA_TIMEOUT_MS ?? 180_000);
-const NEARBY_TIMEOUT_MS = 8_000;
+const NEARBY_TIMEOUT_MS = 18_000;
 const NEARBY_RADIUS_KM = 25;
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -68,32 +68,46 @@ async function farmContext(userId, farmId) {
   return { ...farm, crops: crops.rows.map((c) => c.name) };
 }
 
-// Returns null when nothing was asked, or when the search could not run, so the AI is never
-// told "there are none" because of a timeout.
+// Returns null only when the message has no place-search intent. Search failures and missing
+// coordinates are passed through explicitly so the AI can explain the actual limitation.
 async function nearbyFor(ctx, message) {
-  if (ctx?.lat == null || ctx?.lng == null) return null;
   const hit = INTENTS.find(([, re]) => re.test(message));
   if (!hit) return null;
   const type = hit[0];
+  if (ctx?.lat == null || ctx?.lng == null) {
+    return { type, items: [], status: "missing_location" };
+  }
 
   try {
     const found = await withTimeout(
       nearbyPlaces({ lat: Number(ctx.lat), lng: Number(ctx.lng), radiusKm: NEARBY_RADIUS_KM, type, limit: 5 }),
       NEARBY_TIMEOUT_MS
     );
-    if (!found || found.source === "unavailable") return null;
+    if (!found || found.source === "unavailable") {
+      return { type, items: [], status: "unavailable" };
+    }
     return {
       type,
+      status: "complete",
       items: found.results.map((r) => ({
         name: r.name ?? "Unnamed site",
         kind: r.kind === "partner" ? "registered MAVUNO partner" : "public map site",
+        buyer_type: r.buyerType,
         distance_km: r.distanceKm,
+        lat: r.lat == null ? undefined : Number(r.lat),
+        lng: r.lng == null ? undefined : Number(r.lng),
+        address: r.address ?? undefined,
+        phone: r.phone ?? undefined,
+        website: r.website ?? undefined,
+        map_url: r.mapUrl ?? (r.lat != null && r.lng != null
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.lat},${r.lng}`)}`
+          : undefined),
         price_kes_per_kg: r.pricePerKg ?? undefined,
       })),
     };
   } catch (err) {
     console.warn("Nearby lookup failed for chat:", err.message);
-    return null;
+    return { type, items: [], status: "unavailable" };
   }
 }
 
@@ -139,11 +153,12 @@ router.post("/", parseChatUpload, async (req, res) => {
     if (ctx.crops.length) payload.crop = ctx.crops.join(" and ");
     if (ctx.areaHa) payload.size_acres = Number((ctx.areaHa / 0.4047).toFixed(1));
 
-    const nearby = await nearbyFor(ctx, message);
-    if (nearby) {
-      payload.nearby_type = nearby.type;
-      payload.nearby = nearby.items;
-    }
+  }
+  const nearby = await nearbyFor(ctx, message);
+  if (nearby) {
+    payload.nearby_type = nearby.type;
+    payload.nearby = nearby.items;
+    payload.nearby_status = nearby.status;
   }
 
   let aiRes;

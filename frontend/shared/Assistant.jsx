@@ -16,6 +16,12 @@ const isGreetingOnly = (value) => {
   return GREETING_PATTERNS.some((pattern) => clean.includes(pattern));
 };
 
+const renderMessageText = (value) => String(value || "").split(/(https?:\/\/[^\s)]+)/gi).map((part, index) => (
+  /^https?:\/\//i.test(part)
+    ? <a key={index} href={part} target="_blank" rel="noreferrer" className="underline break-all">{part}</a>
+    : part
+));
+
 const detectSpeechLanguage = (value = "") => {
   const clean = value.trim().toLowerCase();
   const swahiliSignals = ["habari", "hujambo", "sasa", "vipi", "shamba", "kilimo", "mazao", "kuuza", "bei", "ngapi", "msee", "naomba"];
@@ -377,8 +383,8 @@ export default function Assistant({ className = "", farmId }) {
                 isAi
                   ? "bg-white/90 border border-brand-100 text-foreground rounded-tl-md"
                   : "bg-gradient-to-br from-brand-700 to-brand-800 text-primary-foreground rounded-tr-md"
-              }`}>
-                {m.text}
+              } whitespace-pre-wrap`}>
+                {isAi ? renderMessageText(m.text) : m.text}
               </div>
               {!isAi && (
                 <div className="p-1.5 bg-brand-50 text-brand-800 rounded-full flex-shrink-0 mt-1 shadow-sm ring-1 ring-brand-100">

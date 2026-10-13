@@ -16,7 +16,7 @@ def get_agronomic_data(lat: float, lng: float) -> dict:
         "hourly": ["soil_temperature_0cm", "soil_moisture_0_to_1cm", "evapotranspiration"]
     }
 
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params, timeout=15)
     if response.status_code != 200:
         raise RuntimeError(f"Open-Meteo API Error ({response.status_code}): {response.text}")
 
@@ -25,16 +25,23 @@ def get_agronomic_data(lat: float, lng: float) -> dict:
     current = data.get("current", {})
     hourly = data.get("hourly", {})
     
-    # Extract latest hourly readings for soil data
-    soil_temp = hourly.get("soil_temperature_0cm", [0])[0] if hourly.get("soil_temperature_0cm") else "N/A"
-    soil_moisture = hourly.get("soil_moisture_0_to_1cm", [0])[0] if hourly.get("soil_moisture_0_to_1cm") else "N/A"
+    # Open-Meteo soil values are modeled estimates for shallow surface layers.
+    soil_temp_values = hourly.get("soil_temperature_0cm") or []
+    soil_moisture_values = hourly.get("soil_moisture_0_to_1cm") or []
+    hourly_times = hourly.get("time") or []
+    soil_temp = soil_temp_values[0] if soil_temp_values else None
+    soil_moisture = soil_moisture_values[0] if soil_moisture_values else None
     
     return {
+        "source": "Open-Meteo modeled estimate",
+        "soil_reading_time": hourly_times[0] if hourly_times else None,
         "temperature_c": current.get("temperature_2m"),
         "humidity_pct": current.get("relative_humidity_2m"),
         "precipitation_mm": current.get("precipitation"),
         "soil_temperature_c": soil_temp,
-        "soil_moisture_m3_m3": soil_moisture
+        "soil_temperature_depth_cm": 0,
+        "soil_moisture_m3_m3": soil_moisture,
+        "soil_moisture_depth_cm": "0-1",
     }
 
 # Quick terminal test block

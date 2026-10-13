@@ -105,6 +105,13 @@ class NearbyPlace(BaseModel):
     name: str
     kind: str = "public map site"
     distance_km: float
+    buyer_type: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+    map_url: Optional[str] = None
     price_kes_per_kg: Optional[float] = None
 
 
@@ -112,16 +119,28 @@ class ChatQuery(BaseModel):
     message: str
     lat: Optional[float] = None
     lng: Optional[float] = None
-    farm_name: Optional[str] = "Oloitiptip Family Farm"
-    crop: Optional[str] = "tomatoes and kale"
-    size_acres: Optional[float] = 2.5
+    farm_name: Optional[str] = None
+    crop: Optional[str] = None
+    size_acres: Optional[float] = None
     # Filled in by the backend from its cached map data. The AI never searches maps itself.
     nearby_type: Optional[str] = None
     nearby: Optional[list[NearbyPlace]] = None
+    nearby_status: Optional[str] = None
 
 
 def describe_nearby(query: ChatQuery) -> str:
-    """Turn the backend's verified nearby-places list into a prompt sentence."""
+    """Describe the backend nearby-place results and their lookup status for the model."""
+    if query.nearby_status == "missing_location":
+        return (
+            "The farmer asked about nearby places, but this farm has no saved coordinates. "
+            "Say the nearby map search needs a saved farm location. Ask them to add the farm pin or share their nearest town/county. "
+            "Do not imply that no buyers exist or ask for details already present in the message. "
+        )
+    if query.nearby_status == "unavailable":
+        return (
+            "The nearby map lookup could not complete for this request. Be transparent that the lookup is temporarily unavailable; "
+            "do not imply that no buyers exist or that you searched successfully. Suggest retrying the Nearby Opportunities page. "
+        )
     if query.nearby is None:
         return ""
 
@@ -140,16 +159,27 @@ def describe_nearby(query: ChatQuery) -> str:
 
     lines = []
     for place in query.nearby[:5]:
-        line = f"{place.name} ({place.kind}, about {place.distance_km} km away"
+        line = f"{place.name} ({place.buyer_type or place.kind}, about {place.distance_km} km away"
+        if place.address:
+            line += f", address {place.address}"
+        elif place.lat is not None and place.lng is not None:
+            line += f", coordinates {place.lat}, {place.lng}"
+        if place.phone:
+            line += f", phone {place.phone}"
+        if place.website:
+            line += f", website {place.website}"
+        if place.map_url:
+            line += f", Google Maps {place.map_url}"
         if place.price_kes_per_kg is not None:
             line += f", pays about {place.price_kes_per_kg} Kenya shillings per kilogram"
         lines.append(line + ")")
 
     return (
-        f"Verified {label} near the farm from map data (distances are straight-line): "
+        f"Mapped {label} leads near the farm (public map records, not confirmed buyers; distances are straight-line): "
         + "; ".join(lines)
         + ". When asked about nearby places, recommend only from this list. "
-        "Do not invent places, prices or opening hours that are not listed. "
+        "These public map sites are leads, not confirmed produce buyers; tell the farmer to call first and ask whether they buy the crop, quantity, grade, delivery terms, and current price. "
+        "Give any listed phone number, address or coordinates, and Google Maps link. If no phone is listed, say it is not available in the map data. Never invent a number, contact, buyer agreement, price or opening hours. "
     )
 
 
@@ -169,7 +199,7 @@ async def chat_endpoint(request: Request):
             key: form.get(key)
             for key in (
                 "message", "lat", "lng", "farm_name", "crop", "size_acres",
-                "nearby_type", "nearby",
+                "nearby_type", "nearby", "nearby_status",
             )
             if form.get(key) is not None
         }
@@ -205,7 +235,14 @@ async def chat_endpoint(request: Request):
 
         temp_path = None
         vision_prompt = (
-            "Assess this farm media and answer the farmer's question. "
+            "Describe only what is visibly supported by this farm media. Separate observations from guesses. "
+            "Do not identify a crop from grass-like appearance alone, and do not say it is ready to harvest "
+            "unless clear crop-specific maturity signs are visible. Do not infer soil fertility, soil moisture, "
+            "or field-wide conditions from appearance alone. State uncertainty when the crop or symptoms "
+            "cannot be identified confidently. Do not name tree species or claim they are healthy from distant "
+            "background trees. Do not recommend specific crop species unless the farmer's location, season, "
+            "water access, and planting goal support that recommendation. "
+            "Assess the media in light of the farmer's question. "
             f"Farmer's question: {query.message}"
         )
         try:
@@ -214,19 +251,50 @@ async def chat_endpoint(request: Request):
                 shutil.copyfileobj(media.file, temp_file)
 
             if is_video:
-                from tools.video_vision_analyzer import analyze_crop_video
+                from tools.video_vision_analyzer import analyze_crop_video, extract_representative_frame
 
                 vision_result = analyze_crop_video(temp_path, prompt=vision_prompt)
                 visual_assessment = vision_result.get("video_visual_assessment")
+                if not visual_assessment:
+                    vision_error = vision_result.get("message") or vision_result.get("error")
+                diagnosis_path = None
+                if os.getenv("KINDWISE_API_KEY"):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as diagnosis_file:
+                        diagnosis_path = diagnosis_file.name
+                    if not extract_representative_frame(temp_path, diagnosis_path):
+                        os.remove(diagnosis_path)
+                        diagnosis_path = None
             else:
                 from tools.vision_analyzer import analyze_crop_image
 
                 vision_result = analyze_crop_image(temp_path, prompt=vision_prompt)
                 visual_assessment = vision_result.get("visual_assessment")
+                vision_error = vision_result.get("message") or vision_result.get("error")
+                diagnosis_path = temp_path
 
-            if not visual_assessment:
-                detail = vision_result.get("message") or vision_result.get("error") or "Media analysis failed"
+            assessments = []
+            if visual_assessment:
+                assessments.append(f"Visual inspection: {visual_assessment}")
+
+            if os.getenv("KINDWISE_API_KEY") and diagnosis_path:
+                try:
+                    from tools.plant_health import diagnose_crop
+
+                    diagnosis = diagnose_crop(diagnosis_path)
+                    assessments.append(
+                        "Crop-health service result (treat as a candidate diagnosis and check it against visible evidence): "
+                        + json.dumps(diagnosis, ensure_ascii=False)
+                    )
+                except Exception as error:
+                    print(f"Crop-health tool unavailable for this upload: {error}", flush=True)
+                finally:
+                    if is_video and diagnosis_path and os.path.exists(diagnosis_path):
+                        os.remove(diagnosis_path)
+
+            if not assessments:
+                detail = vision_error or "Media analysis failed"
                 raise HTTPException(status_code=502, detail=detail)
+            visual_assessment = "\n\n".join(assessments)
         except HTTPException:
             raise
         except Exception as error:
@@ -236,8 +304,34 @@ async def chat_endpoint(request: Request):
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
 
-    weather = get_weather(query.lat, query.lng)
-    location_label = "at the selected farm location" if query.lat else "in your region"
+    from tools.farm_context import collect_farm_context
+
+    farm_tool_context = collect_farm_context(query.lat, query.lng, query.message)
+
+    has_farm_coordinates = query.lat is not None and query.lng is not None
+    weather = get_weather(query.lat, query.lng) if has_farm_coordinates else None
+    if not has_farm_coordinates:
+        weather_context = "Farm coordinates are unavailable; do not claim that weather data is local to this farm."
+    elif weather.get("source") == "fallback":
+        weather_context = "The current weather provider was unavailable; do not present fallback values as live readings."
+    else:
+        weather_context = (
+            f"Current weather at the supplied farm coordinates ({weather.get('source', 'weather service')}): "
+            f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of precipitation."
+        )
+
+    farm_profile = []
+    if query.farm_name:
+        farm_profile.append(f"registered farm name: {query.farm_name}")
+    if query.size_acres is not None:
+        farm_profile.append(f"registered area: {query.size_acres} acres")
+    if query.crop:
+        farm_profile.append(f"crops currently planned or growing: {query.crop}")
+    farm_profile_context = (
+        "Available farm profile: " + "; ".join(farm_profile) + ". "
+        if farm_profile
+        else "No verified farm profile was supplied. Do not invent a farm name, size, or crop history. "
+    )
     today_str = datetime.now().strftime("%A, %B %d, %Y")
     farmer_language = detect_farmer_language(query.message)
     nearby_text = describe_nearby(query)
@@ -251,17 +345,21 @@ async def chat_endpoint(request: Request):
                 + (
                     "A farm image or video was uploaded and successfully analyzed by the visual assessment service. "
                     "Use the attached visual assessment as evidence when answering the farmer. "
+                    "When a crop-health service result is included, compare it with visible evidence and avoid presenting an uncertain result as confirmed. "
                     "Do not say that you cannot read, see, or analyze images, and do not ask the farmer to describe the uploaded media. "
                     "If the assessment is uncertain, explain what is uncertain and ask a focused follow-up question. "
                     if visual_assessment
                     else ""
                 )
                 + f"Today's date is {today_str}. "
-                f"You are advising the owner of {query.farm_name}, "
-                f"a {query.size_acres}-acre farm primarily growing {query.crop}. "
-                f"Current local weather {location_label}: "
-                f"{weather['temperature_c']}°C with {weather['rainfall_mm']}mm of rain. "
-                f"{nearby_text}"
+                + (
+                    "Use relevant farm tool readings included with the farmer's message. State when readings are regional estimates or unavailable. "
+                    if farm_tool_context
+                    else ""
+                )
+                + farm_profile_context
+                + weather_context
+                + f"{nearby_text}"
                 "Language rule: if the farmer's question is in Kiswahili or Sheng, answer in Kiswahili or a natural Kiswahili-Sheng mix. "
                 "If the farmer writes in English, answer in clear English. If the farmer uses English slang or casual wording, keep it natural and conversational, not robotic. "
                 "Do not force English when the user asks in Swahili or Sheng. "
@@ -271,8 +369,19 @@ async def chat_endpoint(request: Request):
                 "- English formal: stay clear and professional but still concise. "
                 "Voice guidance for spoken replies: speak slowly, one sentence at a time, with a natural pause between thoughts. Keep the answer short enough to listen to comfortably. Do not use markdown, bullets, symbols, emojis, or long dense paragraphs. Use words instead of shorthand, such as 'tonnes' instead of 't', and 'Kenya shillings' instead of 'KES'. "
                 "If the answer is read aloud, make it easy to listen to: short sentences, plain language, no jargon, no forced formality, and no long lists. Use everyday farmer-friendly wording. "
-                "Integrate this farm profile, current date, and weather naturally into your advice. "
-                "STRICT RULE: Never apologize or disclaim that you lack access to real-time dates, time, GPS, or farm records. Speak with full authority using the supplied context. "
+                "Use the current date and only the farm profile, weather, and tool readings actually supplied. "
+                "Crops in the registered profile are planned or active crops, not crop history. "
+                "Open-Meteo soil moisture is a modeled estimate for the top 0–1 cm, not a direct root-zone measurement; "
+                "a zero reading alone does not prove the whole field is dry. Recommend checking moisture at root depth before irrigation or planting decisions. "
+                "Soil map data is regional baseline information, not a field soil test. "
+                "Satellite NDVI is an area-level average near the farm point over a recent time window, not a crop identification or leaf-level diagnosis. "
+                "A low or negative NDVI can reflect bare soil, water, non-crop cover, clouds, or mixed land in the satellite footprint; never call it proof of dead crops. "
+                "If NDVI conflicts with the uploaded image, state that the signals disagree, explain that they cover different areas or times, and do not let NDVI overrule clear close-up evidence. "
+                "Do not identify trees, fruit species, or plant health from indistinct background shapes. "
+                "For planting advice, do not give a firm planting schedule from one image or a single weather reading; "
+                "do not suggest named crops or make claims about fruit trees already present unless supported by clear evidence and the farm's goals. "
+                "Account for local season, water access, crop identity, and uncertainty, asking a focused question when a key fact is missing. "
+                "Never present an estimate or visual guess as a confirmed observation. Be clear when information is unavailable. "
                 "Keep answers concise, practical, card-style, and tailored to smallholder farmers. "
                 f"Detected user language style: {farmer_language}."
             ),
@@ -281,8 +390,8 @@ async def chat_endpoint(request: Request):
             "role": "user",
             "content": (
                 query.message
-                if not visual_assessment
-                else f"{query.message}\n\n[Attached media assessment]: {visual_assessment}"
+                + (f"\n\n[Attached media assessment]: {visual_assessment}" if visual_assessment else "")
+                + (f"\n\n[{farm_tool_context}]" if farm_tool_context else "")
             ),
         },
     ]
