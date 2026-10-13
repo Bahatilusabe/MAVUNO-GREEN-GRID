@@ -1,0 +1,1 @@
+ALTER TABLE farms ADD video_url VARCHAR2(1000);

@@ -10,6 +10,7 @@ export const createFarmSchema = z.object({
   soil_type: z.string().max(100).optional(),
   climate_zone: z.string().max(100).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'ARCHIVED']).default('ACTIVE'),
+  video_url: z.string().max(1000).optional(),
 });
 
 export const updateFarmSchema = createFarmSchema.partial().omit({ user_id: true });

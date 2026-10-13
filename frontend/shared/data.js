@@ -82,6 +82,8 @@ export const PROMPTS = [
   "What's the weather forecast?",
 ];
 
+import { getToken } from "../src/lib/api";
+
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export async function fetchWeatherForecast({ latitude = -0.5186, longitude = 37.3675 } = {}) {
@@ -118,8 +120,16 @@ export function normalizeWeatherForecast(data) {
 }
 
 export async function fetchSurplusAlerts() {
+  const token = getToken();
+  // Surplus alerts require authentication; callers already have static fallbacks.
+  if (!token) return null;
+
   try {
-    const response = await fetch(`${API_URL}/surplus-alerts`);
+    const response = await fetch(`${API_URL}/surplus-alerts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    // An expired token should fall back to the existing static recommendations.
+    if (response.status === 401) return null;
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }

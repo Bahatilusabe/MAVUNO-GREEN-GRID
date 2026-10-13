@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import { z } from "zod";
 import { query } from "../../db/pool.js";
 import { HttpError } from "../../utils/errors.js";
@@ -7,8 +8,23 @@ import { nearbyPlaces } from "../places/service.js";
 const router = Router();
 const AI_BASE = process.env.AI_BASE_URL || "http://localhost:8010/api/v1";
 const TIMEOUT_MS = Number(process.env.AI_CHAT_TIMEOUT_MS ?? 90_000);
+const MEDIA_TIMEOUT_MS = Number(process.env.AI_MEDIA_TIMEOUT_MS ?? 180_000);
 const NEARBY_TIMEOUT_MS = 8_000;
 const NEARBY_RADIUS_KM = 25;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024, files: 1 },
+});
+const parseChatUpload = (req, res, next) => {
+  upload.single("media")(req, res, (error) => {
+    if (!error) return next();
+    if (error instanceof multer.MulterError) {
+      const status = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      return next(new HttpError(status, "Chat upload is invalid or exceeds the 50 MB limit"));
+    }
+    next(error);
+  });
+};
 
 const bodySchema = z.object({
   message: z.string().trim().min(1).max(2000),
@@ -81,7 +97,31 @@ async function nearbyFor(ctx, message) {
   }
 }
 
-router.post("/", async (req, res) => {
+router.post("/", parseChatUpload, async (req, res) => {
+  // Recover the prompt from its header if multipart parsing drops text fields.
+  // The client URI-encodes it so arbitrary Unicode remains valid in a header.
+  let headerMessage = "";
+  const encodedHeaderMessage = req.get("X-Chat-Message");
+  if (encodedHeaderMessage) {
+    try {
+      headerMessage = decodeURIComponent(encodedHeaderMessage).trim();
+    } catch {
+      headerMessage = "";
+    }
+  }
+
+  if (!req.body?.message?.trim() && headerMessage) {
+    req.body = { ...req.body, message: headerMessage };
+  }
+
+  // A media upload can still be analyzed if the client omitted both prompts.
+  if (req.file && !req.body?.message?.trim()) {
+    req.body = {
+      ...req.body,
+      message: "Please analyze this farm photo or video and tell me what you see.",
+    };
+  }
+
   const parsed = bodySchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, "message is required (up to 2000 characters)");
@@ -108,19 +148,48 @@ router.post("/", async (req, res) => {
 
   let aiRes;
   try {
-    aiRes = await fetch(`${AI_BASE}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    if (req.file) {
+      if (!/^(image|video)\//i.test(req.file.mimetype)) {
+        throw new HttpError(400, "media must be an image or video");
+      }
+
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(payload)) {
+        if (value !== undefined && value !== null) {
+          formData.append(key, typeof value === "object" ? JSON.stringify(value) : String(value));
+        }
+      }
+      formData.append(
+        "media",
+        new Blob([req.file.buffer], { type: req.file.mimetype }),
+        req.file.originalname
+      );
+
+      aiRes = await fetch(`${AI_BASE}/chat`, {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(MEDIA_TIMEOUT_MS),
+      });
+    } else {
+      aiRes = await fetch(`${AI_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    }
   } catch (err) {
+    if (err instanceof HttpError) throw err;
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw new HttpError(504, "Media analysis timed out. Try a smaller image or video.");
+    }
     throw new HttpError(503, `AI service unavailable: ${err.message}`);
   }
 
   const body = await aiRes.json().catch(() => ({}));
   if (!aiRes.ok || body.status !== "success") {
-    throw new HttpError(502, body.message || "AI service error");
+    const detail = typeof body.detail === "string" ? body.detail : undefined;
+    throw new HttpError(502, body.message || body.error || detail || "AI service error");
   }
   res.json(body);
 });

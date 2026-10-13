@@ -3,17 +3,19 @@ MAVUNO-X FastAPI Backend
 Run this server with: python main.py
 """
 import os
+import json
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import uvicorn
 
 
@@ -152,8 +154,88 @@ def describe_nearby(query: ChatQuery) -> str:
 
 
 @app.post("/api/v1/chat")
-def chat_endpoint(query: ChatQuery):
+async def chat_endpoint(request: Request):
     """Answer a farmer question with live date, weather, and farm context included."""
+    content_type = request.headers.get("content-type", "")
+    media = None
+    if "application/json" in content_type:
+        try:
+            payload = await request.json()
+        except Exception as error:
+            raise HTTPException(status_code=400, detail="Invalid JSON request") from error
+    elif "multipart/form-data" in content_type:
+        form = await request.form()
+        payload = {
+            key: form.get(key)
+            for key in (
+                "message", "lat", "lng", "farm_name", "crop", "size_acres",
+                "nearby_type", "nearby",
+            )
+            if form.get(key) is not None
+        }
+        if isinstance(payload.get("nearby"), str):
+            try:
+                payload["nearby"] = json.loads(payload["nearby"])
+            except json.JSONDecodeError as error:
+                raise HTTPException(status_code=400, detail="Invalid nearby places data") from error
+        media = form.get("media")
+    else:
+        raise HTTPException(status_code=415, detail="Use JSON or multipart form data")
+
+    try:
+        query = ChatQuery.model_validate(payload)
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors()) from error
+
+    visual_assessment = None
+    if media is not None:
+        if not hasattr(media, "filename") or not hasattr(media, "file"):
+            raise HTTPException(status_code=400, detail="media must be an uploaded file")
+        media_type = media.content_type or ""
+        if not (media_type.startswith("image/") or media_type.startswith("video/")):
+            await media.close()
+            raise HTTPException(status_code=400, detail="media must be an image or video")
+
+        extension = Path(media.filename or "").suffix.lower()
+        video_extensions = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+        image_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        is_video = media_type.startswith("video/") or extension in video_extensions
+        safe_extensions = video_extensions if is_video else image_extensions
+        suffix = extension if extension in safe_extensions else (".mp4" if is_video else ".jpg")
+
+        temp_path = None
+        vision_prompt = (
+            "Assess this farm media and answer the farmer's question. "
+            f"Farmer's question: {query.message}"
+        )
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+                temp_path = temp_file.name
+                shutil.copyfileobj(media.file, temp_file)
+
+            if is_video:
+                from tools.video_vision_analyzer import analyze_crop_video
+
+                vision_result = analyze_crop_video(temp_path, prompt=vision_prompt)
+                visual_assessment = vision_result.get("video_visual_assessment")
+            else:
+                from tools.vision_analyzer import analyze_crop_image
+
+                vision_result = analyze_crop_image(temp_path, prompt=vision_prompt)
+                visual_assessment = vision_result.get("visual_assessment")
+
+            if not visual_assessment:
+                detail = vision_result.get("message") or vision_result.get("error") or "Media analysis failed"
+                raise HTTPException(status_code=502, detail=detail)
+        except HTTPException:
+            raise
+        except Exception as error:
+            raise HTTPException(status_code=502, detail=f"Media analysis failed: {error}") from error
+        finally:
+            await media.close()
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+
     weather = get_weather(query.lat, query.lng)
     location_label = "at the selected farm location" if query.lat else "in your region"
     today_str = datetime.now().strftime("%A, %B %d, %Y")
@@ -166,7 +248,15 @@ def chat_endpoint(query: ChatQuery):
             "content": (
                 "You are MAVUNO AI, an expert agricultural and logistics assistant "
                 "for MAVUNO Green Grid in Kenya. "
-                f"Today's date is {today_str}. "
+                + (
+                    "A farm image or video was uploaded and successfully analyzed by the visual assessment service. "
+                    "Use the attached visual assessment as evidence when answering the farmer. "
+                    "Do not say that you cannot read, see, or analyze images, and do not ask the farmer to describe the uploaded media. "
+                    "If the assessment is uncertain, explain what is uncertain and ask a focused follow-up question. "
+                    if visual_assessment
+                    else ""
+                )
+                + f"Today's date is {today_str}. "
                 f"You are advising the owner of {query.farm_name}, "
                 f"a {query.size_acres}-acre farm primarily growing {query.crop}. "
                 f"Current local weather {location_label}: "
@@ -187,7 +277,14 @@ def chat_endpoint(query: ChatQuery):
                 f"Detected user language style: {farmer_language}."
             ),
         },
-        {"role": "user", "content": query.message},
+        {
+            "role": "user",
+            "content": (
+                query.message
+                if not visual_assessment
+                else f"{query.message}\n\n[Attached media assessment]: {visual_assessment}"
+            ),
+        },
     ]
     try:
         response = call_nvidia(messages)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Sprout, Bot, User, Mic, MicOff, Volume2, VolumeX, Lightbulb } from "lucide-react";
+import { Send, Sprout, Bot, User, Mic, MicOff, Volume2, VolumeX, Lightbulb, Paperclip, X } from "lucide-react";
 import { PROMPTS } from "./data";
 import { api, getToken } from "../src/lib/api";
 
@@ -83,6 +83,8 @@ export default function Assistant({ className = "", farmId }) {
   const [isMuted, setIsMuted] = useState(true);
   const [voiceLanguage, setVoiceLanguage] = useState("en-US");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [attachment, setAttachment] = useState(null);
+  const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const sendRef = useRef(null);
   const activeLanguageLabel = voiceLanguage === "sw-KE" ? "Swahili" : "English";
@@ -265,10 +267,11 @@ export default function Assistant({ className = "", farmId }) {
   };
 
   const send = async (q) => {
-    const t = (q ?? text).trim();
+    const typedMessage = (q ?? text).trim();
+    const t = typedMessage || (attachment ? "Please analyze this farm photo or video and tell me what you see." : "");
     if (!t || loading) return;
 
-    if (isGreetingOnly(t)) {
+    if (!attachment && isGreetingOnly(t)) {
       const lower = t.toLowerCase();
       const isSwahiliGreeting = /\b(habari|hujambo|mambo|sasa|vipi)\b/.test(lower);
       const canned = isSwahiliGreeting
@@ -286,11 +289,41 @@ export default function Assistant({ className = "", farmId }) {
 
     let answer;
     try {
-      // The backend adds the saved farm location, crops and nearby places itself
-      const data = await api.post("/chat", {
-        message: t,
-        farmId: typeof farmId === "string" ? farmId : undefined,
-      });
+      let data;
+      if (attachment) {
+        const formData = new FormData();
+        formData.append("message", t);
+        if (typeof farmId === "string") formData.append("farmId", farmId);
+        formData.append("media", attachment);
+
+        const token = getToken();
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "/api/v1"}/chat`,
+          {
+            method: "POST",
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              // Keep the prompt available if multipart parsing drops text fields.
+              "X-Chat-Message": encodeURIComponent(t),
+            },
+            body: formData,
+          }
+        );
+        data = await response.json();
+        if (!response.ok) {
+          const error = new Error(
+            data?.error || data?.detail || data?.message || `Request failed (${response.status})`
+          );
+          error.status = response.status;
+          throw error;
+        }
+      } else {
+        // The backend adds the saved farm location, crops and nearby places itself.
+        data = await api.post("/chat", {
+          message: t,
+          farmId: typeof farmId === "string" ? farmId : undefined,
+        });
+      }
       answer = data.reply || "I couldn't generate a response just now.";
     } catch (error) {
       console.error("Failed to get a MAVUNO AI response:", error);
@@ -298,8 +331,10 @@ export default function Assistant({ className = "", farmId }) {
         answer = "Please sign in to chat with MAVUNO AI.";
       } else if (error?.status === 429) {
         answer = "You're sending messages too quickly. Please wait a moment and try again.";
+      } else if (error?.status === 502 || error?.status === 504) {
+        answer = error.message || "The image analysis service could not complete your request. Please try again.";
       } else {
-        answer = "I couldn't connect to the AI service. Please try again in a moment.";
+        answer = error?.message || "I couldn't connect to the AI service. Please try again in a moment.";
       }
     } finally {
       setLoading(false);
@@ -383,10 +418,59 @@ export default function Assistant({ className = "", farmId }) {
       )}
 
       {/* Input Form */}
+      {attachment && (
+        <div className="px-4 py-2 bg-brand-50 border-t border-brand-100 flex items-center justify-between shadow-sm">
+          <span className="text-xs font-semibold text-brand-700 truncate max-w-[80%]">
+            📎 {attachment.name}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setAttachment(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            className="text-brand-700 hover:text-red-600 transition-colors"
+            aria-label="Remove attachment"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <form
         className="p-3.5 bg-gradient-to-r from-card to-brand-50/30 border-t border-brand-100 flex items-center gap-2.5 shadow-sm"
-        onSubmit={(e) => { e.preventDefault(); send(); }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const submittedMessage = new FormData(e.currentTarget).get("message");
+          send(typeof submittedMessage === "string" ? submittedMessage : text);
+          setAttachment(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }}
       >
+        <input
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={(e) => {
+            if (e.target.files?.[0]) setAttachment(e.target.files[0]);
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className={`p-2.5 rounded-xl transition-all flex items-center justify-center flex-shrink-0 ${
+            attachment
+              ? "bg-brand-100 text-brand-800 border border-brand-300"
+              : "bg-white text-gray-500 border border-border hover:bg-gray-50"
+          }`}
+          title="Attach a photo or video"
+          aria-label="Attach a photo or video"
+        >
+          <Paperclip size={16} />
+        </button>
+
         <button
           type="button"
           onClick={handleMicToggle}
@@ -416,6 +500,7 @@ export default function Assistant({ className = "", farmId }) {
         </button>
 
         <input
+          name="message"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Ask MAVUNO AI…"
@@ -427,7 +512,7 @@ export default function Assistant({ className = "", farmId }) {
           type="submit"
           className="p-2.5 bg-gradient-to-br from-brand-700 to-brand-800 hover:brightness-105 text-primary-foreground rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0"
           aria-label="Send"
-          disabled={loading || !text.trim()}
+          disabled={loading || (!text.trim() && !attachment)}
         >
           <Send aria-hidden="true" size={16} />
         </button>

@@ -63,7 +63,7 @@ export function toUiFarm(f) {
   };
 }
 
-// AddFarmForm values -> API body (the form already converts acres to hectares)
+// AddFarmForm values -> API body
 export const toFarmPayload = (f) => ({
   name: f.name,
   county: f.county,
@@ -73,6 +73,7 @@ export const toFarmPayload = (f) => ({
   irrigation: f.irrigation || undefined,
   lat: f.lat,
   lng: f.lng,
+  video_url: f.videoUrl || undefined, // Added video support
 });
 
 const yieldMultiplier = (unit) =>
