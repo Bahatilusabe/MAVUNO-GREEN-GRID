@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Inbox, Package, Tag, Building2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import Shell from "../shared/Shell";
-import { REQUESTS_INIT, ORDERS_INIT, STEPS } from "./data";
+import { api, getToken } from "../src/lib/api";
+import { useDeals } from "../src/hooks/useDeals";
 import usePartnerStats from "./usePartnerStats";
 import KpiGrid from "./components/KpiGrid";
 import CapacityBar from "./components/CapacityBar";
@@ -11,27 +12,94 @@ import RequestsTab from "./components/RequestsTab";
 import OrdersTab from "./components/OrdersTab";
 import ListingTab from "./components/ListingTab";
 
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+// Must match STEPS in partner/data.js
+const ORDER_LABEL = { scheduled: "Scheduled", in_transit: "In transit", delivered: "Delivered" };
+
+const DEFAULT_LISTING = { price: 20, capacity: 2000, accepting: true };
+
+const fromServer = (p) => ({
+  price: Number(p.pricePerKg ?? DEFAULT_LISTING.price),
+  capacity: Number(p.capacityKg ?? DEFAULT_LISTING.capacity),
+  accepting: p.accepting,
+});
+
 export default function PartnerPortal({ partnerName = "Kagio Juice Processors", partnerType = "Processor" }) {
   const [tab, setTab] = useState("Requests");
-  const [requests, setRequests] = useState(REQUESTS_INIT);
-  const [orders, setOrders] = useState(ORDERS_INIT);
-  const [listing, setListing] = useState({ price: 20, capacity: 2000, accepting: true });
+  const [profile, setProfile] = useState(null);
+  const [listing, setListing] = useState(DEFAULT_LISTING);
+  const { deals, refresh } = useDeals();
+
+  useEffect(() => {
+    if (!getToken()) return;
+    api
+      .get("/partners/me")
+      .then(({ partner }) => {
+        setProfile(partner);
+        setListing(fromServer(partner));
+      })
+      .catch(() => {
+        /* keep the defaults */
+      });
+  }, []);
+
+  // usePartnerStats and the tabs expect capitalised statuses, so adapt the server rows here
+  const requests = useMemo(() => deals.map((d) => ({ ...d, status: cap(d.status) })), [deals]);
+
+  const orders = useMemo(
+    () =>
+      deals
+        .filter((d) => ORDER_LABEL[d.status])
+        .map((d) => ({
+          id: d.id,
+          farmer: d.farmerName,
+          crop: d.crop,
+          kg: d.kg,
+          price: d.pricePerKg,
+          date: d.pickupDate,
+          status: ORDER_LABEL[d.status],
+        })),
+    [deals]
+  );
+
   const stats = usePartnerStats(orders, requests, listing.capacity);
 
-  const decide = (r, accept) => {
-    setRequests((rs) => rs.map((x) => (x.id === r.id ? { ...x, status: accept ? "Accepted" : "Declined" } : x)));
-    if (accept) setOrders((os) => [...os, { id: Date.now(), farmer: r.farmer, crop: r.crop, kg: r.kg, price: r.price, date: r.date, status: "Scheduled" }]);
-    toast[accept ? "success" : "info"](
-      accept
-        ? `Accepted ${r.farmer}'s request`
-        : `Declined ${r.farmer}'s request`,
-    );
+  const advance = useCallback(
+    async (id) => {
+      try {
+        await api.post(`/deals/${id}/advance`);
+        await refresh();
+        toast.success("Order status updated");
+      } catch (e) {
+        toast.error(e.message);
+      }
+    },
+    [refresh]
+  );
+
+  // Throws on failure so ListingTab can show the error and keep the form as it is
+  const saveListing = async (price, capacity) => {
+    const { partner } = await api.patch("/partners/me", {
+      price_per_kg: price,
+      capacity_kg: Math.round(capacity),
+    });
+    setProfile(partner);
+    setListing(fromServer(partner));
   };
 
-  const advance = (id) => {
-    setOrders((os) => os.map((o) => (o.id === id ? { ...o, status: STEPS[STEPS.indexOf(o.status) + 1] || o.status } : o)));
-    toast.success("Order status updated");
+  const setAccepting = async (accepting) => {
+    setListing((l) => ({ ...l, accepting }));
+    try {
+      await api.patch("/partners/me", { accepting });
+    } catch (e) {
+      setListing((l) => ({ ...l, accepting: !accepting }));
+      toast.error(e.message);
+    }
   };
+
+  const name = profile?.name ?? partnerName;
+  const type = profile ? cap(profile.type) : partnerType;
 
   const nav = [
     ["Requests", "Requests", Inbox, stats.pending],
@@ -40,19 +108,19 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
   ];
 
   const user = {
-    name: partnerName,
-    sub: `${partnerType} partner`,
-    initials: partnerName.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase(),
+    name,
+    sub: `${type} partner`,
+    initials: name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase(),
   };
 
   return (
-    <Shell 
-      nav={nav} 
-      active={tab} 
-      onNavigate={setTab} 
-      title="Partner Portal" 
-      subtitle="Requests, orders and capacity" 
-      user={user} 
+    <Shell
+      nav={nav}
+      active={tab}
+      onNavigate={setTab}
+      title="Partner Portal"
+      subtitle="Requests, orders and capacity"
+      user={user}
       alerts={stats.pending}
     >
       <div className="space-y-6 pb-12">
@@ -63,8 +131,8 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
               <Building2 size={24} aria-hidden="true" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">{partnerName}</h1>
-              <p className="text-xs text-gray-500 font-medium">{partnerType} partner • MAVUNO Green Grid</p>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">{name}</h1>
+              <p className="text-xs text-gray-500 font-medium">{type} partner • MAVUNO Green Grid</p>
             </div>
           </div>
 
@@ -74,11 +142,11 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
               {listing.accepting ? "Accepting requests" : "Paused"}
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                role="switch" 
-                checked={listing.accepting} 
-                onChange={(e) => setListing({ ...listing, accepting: e.target.checked })} 
+              <input
+                type="checkbox"
+                role="switch"
+                checked={listing.accepting}
+                onChange={(e) => setAccepting(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-700" />
@@ -88,7 +156,10 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
 
         {/* Paused Banner */}
         {!listing.accepting && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800 text-xs sm:text-sm font-semibold shadow-xs" role="status">
+          <div
+            className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-800 text-xs sm:text-sm font-semibold shadow-xs"
+            role="status"
+          >
             <AlertTriangle size={18} className="text-amber-600 flex-shrink-0" />
             <span>Paused. Farmers can't send you new match requests.</span>
           </div>
@@ -105,9 +176,18 @@ export default function PartnerPortal({ partnerName = "Kagio Juice Processors", 
 
         {/* Dynamic Tab Views */}
         <div className="pt-2">
-          {tab === "Requests" && <RequestsTab requests={requests} stats={stats} accepting={listing.accepting} onDecide={decide} />}
+          {tab === "Requests" && (
+            <RequestsTab requests={requests} stats={stats} accepting={listing.accepting} onChanged={refresh} />
+          )}
           {tab === "Orders" && <OrdersTab orders={orders} onAdvance={advance} />}
-          {tab === "Listing" && <ListingTab listing={listing} load={stats.load} onSave={(price, capacity) => setListing({ ...listing, price, capacity })} />}
+          {tab === "Listing" && (
+            <ListingTab
+              key={`${listing.price}-${listing.capacity}`}
+              listing={listing}
+              load={stats.load}
+              onSave={saveListing}
+            />
+          )}
         </div>
       </div>
     </Shell>

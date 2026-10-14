@@ -5,8 +5,10 @@ import { INITIAL_FARMS } from "../shared/data";
 import { FARMER_NAV, FARMER_USER } from "../shared/nav";
 import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
+import DealThread from "../shared/DealThread";
 import { COUNTIES } from "./constants";
 import { useFarms } from "../src/hooks/useFarms";
+import { useNotifications } from "../src/hooks/useNotifications";
 import { getUser } from "../src/lib/api";
 import Overview from "./views/Overview";
 import MyFarms from "./views/MyFarms";
@@ -24,7 +26,6 @@ import Transport from "./views/Transport";
 import Weather from "./views/Weather";
 import Messages from "./views/Messages";
 import AddCropForm from "./views/AddCropForm";
-import { NOTIFICATIONS } from "./views/messages/data";
 
 const SUBTITLES = {
   storage: "Find, compare and reserve storage before your harvest arrives.",
@@ -61,7 +62,8 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const [farmId, setFarmId] = useState(null);
   const [adding, setAdding] = useState(false);
   const [county, setCounty] = useState("Kirinyaga");
-  const [notes, setNotes] = useState(NOTIFICATIONS);
+  const inbox = useNotifications();
+  const [openDeal, setOpenDeal] = useState(null);
   const [greeting] = useState(() => {
     const h = new Date().getHours();
     return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
@@ -73,6 +75,12 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const go = (v) => { setView(v); setAdding(false); };
   const openFarm = (id) => { setFarmId(id); setView("farm"); };
   const openCrop = (id) => { setFarmId(id); setView("forecast"); };
+
+  const openNotification = (n) => {
+    inbox.markRead(n.id);
+    if (n.matchId) setOpenDeal(n.matchId);
+    else if (n.action?.to) go(n.action.to);
+  };
 
   const addFarm = async (f) => {
     if (demo) {
@@ -112,7 +120,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
     toast.success(`${crop.crop_type} added to the farm`);
   };
 
-  const unread = notes.filter((n) => n.unread).length;
+  const unread = inbox.unread;
   const nav = FARMER_NAV.map((n) => (n[0] === "messages" ? [n[0], n[1], n[2], unread] : n));
 
   const activeNav = view === "farm" ? "farms" : view === "forecast" ? "crops" : view;
@@ -167,7 +175,19 @@ export default function FarmerPortal({ initialView = "overview" }) {
       case "storage": content = <Storage farms={farms} />; break;
       case "transport": content = <Transport go={go} />; break;
       case "weather": content = <Weather farm={farm} />; break;
-      case "messages": content = <Messages items={notes} setItems={setNotes} go={go} />; break;
+      case "messages":
+        content = (
+          <Messages
+            items={inbox.items}
+            loading={inbox.loading}
+            onRead={inbox.markRead}
+            onDismiss={inbox.dismiss}
+            onRestore={inbox.restore}
+            onMarkAll={inbox.markAllRead}
+            onOpen={openNotification}
+          />
+        );
+        break;
       default: content = (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
           {navTitle} is coming soon.
@@ -214,6 +234,10 @@ export default function FarmerPortal({ initialView = "overview" }) {
         )}
         {content}
       </div>
+
+      {openDeal && (
+        <DealThread dealId={openDeal} onClose={() => setOpenDeal(null)} onChanged={inbox.refresh} />
+      )}
     </Shell>
   );
 }

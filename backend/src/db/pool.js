@@ -45,8 +45,8 @@ export async function query(sql, values = []) {
   const connection = await getConnection();
   try {
     const oracleSql = sql.replace(/\$(\d+)/g, ":$1");
-    const result = await connection.execute(oracleSql, values);
-    return { rows: result.rows ?? [] };
+    const result = await connection.execute(oracleSql, values, { autoCommit: true });
+    return { rows: result.rows ?? [], rowsAffected: result.rowsAffected ?? 0 };
   } finally {
     await connection.close();
   }

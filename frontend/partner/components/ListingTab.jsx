@@ -8,9 +8,11 @@ export default function ListingTab({ listing, load, onSave }) {
     price: String(listing.price),
     capacity: String(listing.capacity),
   });
+  const [saving, setSaving] = useState(false);
+  const [serverError, setServerError] = useState("");
 
-  const price = Number(draft.price),
-    cap = Number(draft.capacity);
+  const price = Number(draft.price);
+  const cap = Number(draft.capacity);
 
   const error = !(price > 0)
     ? "Enter a price above 0."
@@ -21,8 +23,25 @@ export default function ListingTab({ listing, load, onSave }) {
     : "";
 
   const edit = (k) => (e) => {
+    setServerError("");
     setDraft({ ...draft, [k]: e.target.value });
   };
+
+  const save = async () => {
+    setSaving(true);
+    setServerError("");
+    try {
+      await onSave(price, cap);
+      toast.success("Listing saved");
+    } catch (e) {
+      setServerError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const shownError = error || serverError;
+  const disabled = Boolean(error) || saving;
 
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5 max-w-xl">
@@ -52,6 +71,7 @@ export default function ListingTab({ listing, load, onSave }) {
           <input
             type="number"
             min="1"
+            step="1"
             value={draft.capacity}
             onChange={edit("capacity")}
             className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-green-600 transition-all font-medium"
@@ -59,29 +79,28 @@ export default function ListingTab({ listing, load, onSave }) {
         </label>
       </div>
 
-      {error && (
+      {shownError && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700" role="alert">
-          {error}
+          {shownError}
         </div>
       )}
 
       <button
         className={`w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 ${
-          Boolean(error)
+          disabled
             ? "bg-gray-200 text-gray-400 cursor-not-allowed"
             : "bg-green-700 hover:bg-green-800 text-white cursor-pointer"
         }`}
-        disabled={!!error}
-        onClick={() => {
-          onSave(price, cap);
-          toast.success("Listing saved");
-        }}
+        disabled={disabled}
+        onClick={save}
       >
-        Save listing
+        {saving ? "Saving..." : "Save listing"}
       </button>
 
       <div className="text-center pt-1">
-        <small className="text-[11px] text-gray-400 font-medium">Listing changes are local until you connect an API.</small>
+        <small className="text-[11px] text-gray-400 font-medium">
+          The price is the opening offer farmers see when they send you a request.
+        </small>
       </div>
     </section>
   );

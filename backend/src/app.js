@@ -20,6 +20,8 @@ import placesRoutes from "./modules/places/routes.js";
 import matchRoutes from "./modules/matches/routes.js";
 import opportunitiesRoutes from "./modules/opportunities/routes.js";
 import surplusAlertRoutes from "./modules/surplus-alerts/routes.js";
+import dealRoutes from "./modules/negotiation/routes.js";
+import notificationRoutes from "./modules/notifications/routes.js";
 
 export function createApp() {
   const app = express();
@@ -60,6 +62,9 @@ export function createApp() {
   v1Router.use("/transport", requireAuth, transportRoutes);
   v1Router.use("/storage", requireAuth, storageRoutes);
 
+  v1Router.use("/deals", dealRoutes);
+  v1Router.use("/notifications", requireAuth, notificationRoutes);
+ 
   app.use("/api", v1Router);
   app.use("/api/v1", v1Router);
 

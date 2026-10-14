@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { fmt } from "../../shared/utils";
 import { NEXT_LABEL } from "../data";
 import { ShoppingCart } from "lucide-react";
 
 const STATUS_STYLES = {
+  scheduled: "bg-blue-100 text-blue-800 border-blue-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   "in-transit": "bg-amber-100 text-amber-800 border-amber-200",
   delivered: "bg-green-100 text-green-800 border-green-200",
@@ -10,7 +12,26 @@ const STATUS_STYLES = {
   default: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
+function pickup(date) {
+  if (!date) return "To be agreed";
+  const d = new Date(`${date}T00:00:00`);
+  return Number.isNaN(d.getTime())
+    ? date
+    : d.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function OrdersTab({ orders, onAdvance }) {
+  const [busyId, setBusyId] = useState(null);
+
+  const advance = async (id) => {
+    setBusyId(id);
+    try {
+      await onAdvance(id);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
       <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
@@ -47,7 +68,7 @@ export default function OrdersTab({ orders, onAdvance }) {
                   <td className="p-3.5 sm:px-5 text-gray-700 font-medium">{o.crop}</td>
                   <td className="p-3.5 sm:px-5 text-gray-800 font-semibold">{fmt(o.kg)} kg</td>
                   <td className="p-3.5 sm:px-5 text-gray-800 font-semibold">KES {fmt(o.kg * o.price)}</td>
-                  <td className="p-3.5 sm:px-5 text-gray-500 font-medium">{o.date}</td>
+                  <td className="p-3.5 sm:px-5 text-gray-500 font-medium">{pickup(o.date)}</td>
                   <td className="p-3.5 sm:px-5">
                     <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border ${statusStyle}`}>
                       {o.status}
@@ -55,11 +76,12 @@ export default function OrdersTab({ orders, onAdvance }) {
                   </td>
                   <td className="p-3.5 sm:px-5 text-right">
                     {nextLabel && (
-                      <button 
-                        className="px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1"
-                        onClick={() => onAdvance(o.id)}
+                      <button
+                        disabled={busyId === o.id}
+                        className="px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => advance(o.id)}
                       >
-                        {nextLabel}
+                        {busyId === o.id ? "Updating..." : nextLabel}
                       </button>
                     )}
                   </td>

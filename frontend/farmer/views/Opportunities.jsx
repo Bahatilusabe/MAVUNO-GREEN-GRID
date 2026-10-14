@@ -3,6 +3,7 @@ import { Check, Target, MapPin, Route as RouteIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { OPPS, OPP_COLOR } from "../../shared/data";
 import MapView from "../../shared/MapView";
+import DealThread from "../../shared/DealThread";
 import { api, getToken } from "../../src/lib/api";
 
 const TYPE_LABELS = {
@@ -28,6 +29,7 @@ const KNOWN_SITES = {
 
 const ACTIVE = new Set(["pending", "scheduled", "in_transit"]);
 const UNAVAILABLE_CROP = new Set(["SOLD", "LOST"]);
+const MATCH_POLL_MS = 20000;
 
 const newKey = () =>
   globalThis.crypto?.randomUUID?.() ?? `k-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -86,6 +88,7 @@ export default function Opportunities({ farm }) {
   const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
   const [transporting, setTransporting] = useState({}); // match_id -> boolean
+  const [threadId, setThreadId] = useState(null); // deal open in the negotiation panel
   const handleRoute = useCallback((summary) => setRouteInfo(summary), []);
 
   const origin = farmLocation(farm);
@@ -97,6 +100,23 @@ export default function Opportunities({ farm }) {
     () => (farm?.crops ?? []).filter((c) => !UNAVAILABLE_CROP.has(c.status)),
     [farm],
   );
+
+  // Re-fetch the farmer's matches. A declined or cancelled match drops out of the map,
+  // so its card goes back to showing "Match".
+  const loadMatches = useCallback(async (signal) => {
+    if (!getToken()) return;
+    try {
+      const { matches: list } = await api.get("/matches", { signal });
+      const map = {};
+      for (const m of list) {
+        const id = matchTargetId(m);
+        if (ACTIVE.has(m.status) && !map[id]) map[id] = m; // list is newest first
+      }
+      setMatches(map);
+    } catch {
+      /* keep the last good state */
+    }
+  }, []);
 
   useEffect(() => {
     if (!getToken()) {
@@ -122,19 +142,19 @@ export default function Opportunities({ farm }) {
         setLoadState(e.status === 422 ? "no-location" : "sample");
       });
 
-    api.get("/matches", { signal: ctrl.signal })
-      .then(({ matches: list }) => {
-        const map = {};
-        for (const m of list) {
-          const id = matchTargetId(m);
-          if (ACTIVE.has(m.status) && !map[id]) map[id] = m; // list is newest first
-        }
-        setMatches(map);
-      })
-      .catch(() => {});
+    loadMatches(ctrl.signal);
 
     return () => ctrl.abort();
-  }, [farmId]);
+  }, [farmId, loadMatches]);
+
+  // Pick up changes the other side made (a decline, an accepted offer) without a reload
+  useEffect(() => {
+    if (!getToken()) return undefined;
+    const t = setInterval(() => {
+      if (!document.hidden) loadMatches();
+    }, MATCH_POLL_MS);
+    return () => clearInterval(t);
+  }, [loadMatches]);
 
   const opportunities = useMemo(
     () => live ?? OPPS.map((o) => ({ ...o, ...(KNOWN_SITES[o.name] ?? {}) })),
@@ -250,17 +270,22 @@ export default function Opportunities({ farm }) {
   const requestTransport = async (match, siteName) => {
     setTransporting((prev) => ({ ...prev, [match.id]: true }));
     try {
-      await api.post('/transport/from-match', {
+      await api.post("/transport/from-match", {
         match_id: match.id,
       });
       toast.success(`Transport requested for ${siteName}!`, {
-        description: `A driver will be assigned to pick up your ${match.crop}.`
+        description: `A driver will be assigned to pick up your ${match.crop}.`,
       });
     } catch (e) {
       toast.error(e.message || "Failed to request transport");
     } finally {
       setTransporting((prev) => ({ ...prev, [match.id]: false }));
     }
+  };
+
+  const closeThread = () => {
+    setThreadId(null);
+    loadMatches();
   };
 
   const notice = {
@@ -329,8 +354,7 @@ export default function Opportunities({ farm }) {
                         {o.type} about {o.km} km away • {o.cap}
                       </small>
                       <small className="text-xs text-green-800 font-semibold block">
-                        {o.price}
-                        {o.note}
+                        {o.price} • {o.note}
                       </small>
                       {info && (
                         <small className="text-xs text-blue-700 font-semibold block">
@@ -345,7 +369,7 @@ export default function Opportunities({ farm }) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-start sm:self-center flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 self-start sm:self-center flex-shrink-0">
                     <button
                       disabled={!hasCoords(o)}
                       title={hasCoords(o) ? "Show the road route from your farm" : "No location available"}
@@ -367,6 +391,14 @@ export default function Opportunities({ farm }) {
                           {match.status === "pending" ? "Pending" : match.status.replace("_", " ")}
                           <Check aria-hidden="true" size={14} />
                         </span>
+                        {o.kind === "partner" && (
+                          <button
+                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-gray-900 hover:bg-black text-white"
+                            onClick={() => setThreadId(match.id)}
+                          >
+                            Negotiate
+                          </button>
+                        )}
                         {match.status === "pending" && (
                           <button
                             className="px-2.5 py-2 text-xs font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -451,7 +483,7 @@ export default function Opportunities({ farm }) {
                         </label>
                       ) : (
                         <div className="text-xs text-gray-600 self-end pb-2">
-                          Partner rate applies: {o.price}
+                          Opening offer: {o.price}. You can negotiate after sending.
                         </div>
                       )}
                     </div>
@@ -529,6 +561,8 @@ export default function Opportunities({ farm }) {
           </div>
         </div>
       </div>
+
+      {threadId && <DealThread dealId={threadId} onClose={closeThread} onChanged={loadMatches} />}
     </div>
   );
 }

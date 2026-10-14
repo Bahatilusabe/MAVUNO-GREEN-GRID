@@ -142,15 +142,18 @@ export async function createMatch(ownerId, d) {
     );
     id = ins.outBinds.out_id[0];
 
-    await conn.execute(
-      `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, action_label)
-       VALUES (:user_id, 'message', 'deal', 'green', :title, :body, 'transport', 'Track')`,
-      {
-        user_id: ownerId,
-        title: "Match request sent",
-        body: `${d.kg} kg of ${crop.name} to ${targetName}. Waiting for confirmation.`,
-      }
-    );
+ await conn.execute(
+  `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, action_label, match_id)
+   VALUES (:user_id, 'message', 'deal', 'green', :title, :body, :to, :label, :match_id)`,
+  {
+    user_id: ownerId,
+    title: "Match request sent",
+    body: `${d.kg} kg of ${crop.name} to ${targetName}. Waiting for confirmation.`,
+    to: d.partner_id ? "messages" : "transport",
+    label: d.partner_id ? "Open" : "Track",
+    match_id: d.partner_id ? id : null,
+  }
+);
 
     await conn.commit();
   } catch (err) {
