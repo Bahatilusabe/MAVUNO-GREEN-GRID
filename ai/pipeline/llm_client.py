@@ -211,5 +211,27 @@ def parse_json(text: str) -> dict:
     start, end = cleaned.find("{"), cleaned.rfind("}")
     return json.loads(cleaned[start:end + 1])
 
+# Inside your chat/assessment route or interceptor logic:
+def get_augmented_context(lat, lng, image_path=None, user_query="Assess my farm"):
+    # 1. Existing telemetry tools (SoilGrids, Open-Meteo, Copernicus NDVI)
+    telemetry_data = fetch_all_telemetry(lat, lng)
+    
+    vision_report = None
+    if image_path:
+        # 2. Run NVIDIA Vision Analysis on the uploaded farm/crop photo
+        from tools.vision_analyzer import analyze_crop_image
+
+        vision_report = analyze_crop_image(image_path, prompt=user_query)
+        
+    # Combine everything into the force-injected prompt context
+    combined_context = f"""
+    [SENSOR DATA]
+    {telemetry_data}
+    
+    [NVIDIA VISION VLM CROP INSPECTION REPORT]
+    {vision_report if vision_report else "No farm photo uploaded for this query."}
+    """
+    return combined_context
+
 def model_enabled() -> bool:
     return os.environ.get("NVIDIA_ENABLED", "1").lower() not in {"0", "false", "no"}

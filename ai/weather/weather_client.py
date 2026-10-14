@@ -22,17 +22,34 @@ def get_weather(lat: float = -0.5, lng: float = 37.35) -> dict:
         "latitude": lat,
         "longitude": lng,
         "current": "temperature_2m,precipitation",
+        "daily": "temperature_2m_max,precipitation_probability_max,weather_code",
+        "forecast_days": 5,
         "timezone": "Africa/Nairobi",
     }
 
     try:
         response = requests.get(OPEN_METEO_URL, params=params, timeout=5.0)
         response.raise_for_status()
-        current = response.json().get("current", {})
+        data = response.json()
+        current = data.get("current", {})
+        daily = data.get("daily", {})
+        dates = daily.get("time", [])
+        temperatures = daily.get("temperature_2m_max", [])
+        rain_chances = daily.get("precipitation_probability_max", [])
+        weather_codes = daily.get("weather_code", [])
         result = {
             "temperature_c": current.get("temperature_2m", 25.0),
             "rainfall_mm": current.get("precipitation", 0.0),
             "source": "open-meteo",
+            "forecast": [
+                {
+                    "date": date,
+                    "temperature_max_c": temperatures[index] if index < len(temperatures) else None,
+                    "precipitation_probability_pct": rain_chances[index] if index < len(rain_chances) else None,
+                    "weather_code": weather_codes[index] if index < len(weather_codes) else None,
+                }
+                for index, date in enumerate(dates[:5])
+            ],
         }
     except requests.RequestException as error:
         print(f"Open-Meteo fetch failed ({error}). Using seasonal defaults.")

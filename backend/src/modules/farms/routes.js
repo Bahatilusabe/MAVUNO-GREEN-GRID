@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 import { HttpError } from "../../utils/errors.js";
 import { listFarms, getFarm, createFarm, updateFarm, deleteFarm } from "./service.js";
+import multer from "multer";
+import path from "path";
 
 const router = Router();
 router.use(requireAuth, requireRole("farmer"));
@@ -61,6 +63,27 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   await deleteFarm(req.user.id, req.params.id);
   res.status(204).end();
+});
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const folder = file.mimetype.startsWith('image/') ? './uploads/photos/' : './uploads/videos/';
+      cb(null, folder);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+
+// Use fields() instead of single() to handle both photo and video simultaneously
+router.post("/", upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
+  const photoUrl = req.files?.photo ? `/uploads/photos/${req.files.photo[0].filename}` : null;
+  const videoUrl = req.files?.video ? `/uploads/videos/${req.files.video[0].filename}` : null;
+  
+  // Pass photoUrl and videoUrl to your createFarm database service
 });
 
 export default router;

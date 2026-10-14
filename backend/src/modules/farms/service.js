@@ -14,7 +14,8 @@ const FARM_SELECT = `
   f.irrigation AS "irrigation",
   f.lat AS "lat",
   f.lng AS "lng",
-  f.photo_url AS "photoUrl"`;
+  f.photo_url AS "photoUrl",
+  f.video_url AS "videoUrl"`;
 
 export async function listFarms(ownerId) {
   const [farmsRes, crops] = await Promise.all([
@@ -38,9 +39,9 @@ export async function createFarm(ownerId, d) {
   const conn = await getConnection();
   try {
     const result = await conn.execute(
-      `INSERT INTO farms (owner_id, name, county, sub_county, area_ha, farm_type, water_source, irrigation, lat, lng)
+      `INSERT INTO farms (owner_id, name, county, sub_county, area_ha, farm_type, water_source, irrigation, lat, lng,video_url)
        VALUES (:owner_id, :name, :county, :sub_county, :area_ha, NVL(:farm_type, 'Smallholder'),
-               :water_source, :irrigation, :lat, :lng)
+               :water_source, :irrigation, :lat, :lng , :video_url)
        RETURNING id INTO :out_id`,
       {
         owner_id: ownerId,
@@ -53,6 +54,7 @@ export async function createFarm(ownerId, d) {
         irrigation: d.irrigation ?? null,
         lat: d.lat ?? null,
         lng: d.lng ?? null,
+        video_url: d.video_url ?? null,
         out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING },
       },
       { autoCommit: true }
@@ -74,6 +76,7 @@ const COLUMNS = [
   "irrigation",
   "lat",
   "lng",
+  "video_url",
 ];
 
 export async function updateFarm(ownerId, id, d) {

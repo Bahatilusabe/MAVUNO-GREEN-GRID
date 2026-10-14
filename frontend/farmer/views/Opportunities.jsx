@@ -74,6 +74,11 @@ function toOpp(o) {
     note: o.kind === "partner" ? "Registered MAVUNO partner" : "Public site, not yet on MAVUNO",
     lat: Number(o.lat),
     lng: Number(o.lng),
+    phone: o.phone || null,
+    website: o.website || null,
+    address: o.address || null,
+    buyerType: o.buyerType || null,
+    mapUrl: o.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${o.lat},${o.lng}`)}`,
   };
 }
 
@@ -356,6 +361,11 @@ export default function Opportunities({ farm }) {
                       <small className="text-xs text-green-800 font-semibold block">
                         {o.price} • {o.note}
                       </small>
+                      {o.buyerType && <small className="text-xs text-gray-600 block">Mapped as: {o.buyerType}</small>}
+                      {o.address && <small className="text-xs text-gray-600 block">{o.address}</small>}
+                      {o.phone && <a className="text-xs text-blue-700 underline block" href={`tel:${o.phone}`}>Call {o.phone}</a>}
+                      {o.website && <a className="text-xs text-blue-700 underline block" href={o.website} target="_blank" rel="noreferrer">Visit website</a>}
+                      <a className="text-xs text-blue-700 underline block" href={o.mapUrl} target="_blank" rel="noreferrer">Open location in Google Maps</a>
                       {info && (
                         <small className="text-xs text-blue-700 font-semibold block">
                           By road: {info.approximate ? "≈ " : ""}{info.distanceKm} km · {fmtTime(info.durationMinutes)}

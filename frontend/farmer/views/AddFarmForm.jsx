@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
 
 const COUNTIES = ["Kirinyaga", "Embu", "Murang'a", "Nyeri", "Machakos"];
-const EMPTY = { name: "", county: "", sub: "", area: "", water: "", irrigation: "" };
+const EMPTY = { name: "", county: "", sub: "", area: "", water: "", irrigation: "", videoFile: null, photoFile: null };
 const SATELLITE_DEFAULT = import.meta.env.VITE_MAP_STYLE === "satellite";
 
 const pinIcon = L.divIcon({
@@ -73,6 +73,7 @@ export default function AddFarmForm({ onSave, onCancel }) {
       lat: Number(position.lat.toFixed(6)),
       lng: Number(position.lng.toFixed(6)),
       coords: `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`,
+      videoFile: f.videoFile,
     });
   };
 
@@ -104,9 +105,31 @@ export default function AddFarmForm({ onSave, onCancel }) {
             </label>
           </div>
 
-          <label className="block text-sm font-medium text-gray-700">Area (acres) *
-            <input className="mt-1 w-full p-2 border rounded-md" type="number" min="0" step="0.1" value={f.area} onChange={set("area")} placeholder="e.g. 1.2" />
-          </label>
+          <div className="space-y-4 pt-2">
+            <label className="block text-sm font-medium text-gray-700">Farm Media (Optional Photos or Video)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <span className="block text-xs text-gray-500 mb-1">Crop/Soil Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setF({ ...f, photoFile: e.target.files[0] })}
+                  className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {f.photoFile && <p className="text-[11px] text-blue-600 mt-1">Photo: {f.photoFile.name}</p>}
+              </div>
+              <div>
+                <span className="block text-xs text-gray-500 mb-1">Walkthrough Video</span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setF({ ...f, videoFile: e.target.files[0] })}
+                  className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                />
+                {f.videoFile && <p className="text-[11px] text-green-600 mt-1">Video: {f.videoFile.name}</p>}
+              </div>
+            </div>
+          </div>
 
           <h4 className="font-semibold text-green-800 border-b pb-2 mt-6">2. Resources</h4>
 

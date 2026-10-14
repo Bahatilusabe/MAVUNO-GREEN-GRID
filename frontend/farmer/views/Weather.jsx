@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   CloudRain,
@@ -13,6 +13,7 @@ import {
 import { fetchWeatherForecast } from "../../shared/data";
 import { TrendLine } from "../../shared/charts";
 import { COLORS } from "../../shared/chartColors";
+import MapView from "../../shared/MapView";
 
 const ICONS = {
   partlyCloudy: CloudSun,
@@ -53,23 +54,39 @@ function buildPrediction(forecast) {
   };
 }
 
-export default function Weather() {
+export default function Weather({ farm }) {
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const savedCoords = typeof farm?.coords === "string" ? farm.coords.split(",").map(Number) : [];
+  const latitude = farm?.lat == null ? savedCoords[0] : Number(farm.lat);
+  const longitude = farm?.lng == null ? savedCoords[1] : Number(farm.lng);
+  const hasFarmLocation = Number.isFinite(latitude) && Number.isFinite(longitude);
 
-  const load = () => {
+  const load = useCallback(async (signal) => {
+    if (!hasFarmLocation) {
+      setWeather(null);
+      setError(new Error("This farm has no saved map pin."));
+      setRefreshing(false);
+      return;
+    }
     setRefreshing(true);
     setError(null);
-    fetchWeatherForecast()
-      .then(setWeather)
-      .catch(setError)
-      .finally(() => setRefreshing(false));
-  };
+    try {
+      const result = await fetchWeatherForecast({ latitude, longitude, signal });
+      setWeather({ ...result, location: farm?.sub || farm?.county || result.location });
+    } catch (requestError) {
+      if (requestError.name !== "AbortError") setError(requestError);
+    } finally {
+      if (!signal?.aborted) setRefreshing(false);
+    }
+  }, [hasFarmLocation, latitude, longitude, farm?.name, farm?.county, farm?.sub]);
 
   useEffect(() => {
-    load();
-  }, []);
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const forecast = weather?.forecast || [];
   const prediction = buildPrediction(forecast);
@@ -83,9 +100,13 @@ export default function Weather() {
     return (
       <div className="bg-white rounded-xl border border-red-200 p-10 text-center space-y-3">
         <AlertTriangle className="mx-auto text-red-600" size={30} />
-        <h2 className="font-bold text-gray-900">Weather data is unavailable</h2>
-        <p className="text-sm text-gray-500">We could not load the forecast for your farms.</p>
-        <button onClick={load} className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800">Try again</button>
+        <h2 className="font-bold text-gray-900">{hasFarmLocation ? "Weather data is unavailable" : "This farm has no saved map pin"}</h2>
+        <p className="text-sm text-gray-500">
+          {hasFarmLocation
+            ? `We could not load Open-Meteo data for ${farm?.name || "this farm"}.`
+            : "Add the farm location pin to get a forecast for its coordinates."}
+        </p>
+        {hasFarmLocation && <button onClick={() => load()} className="px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800">Try again</button>}
       </div>
     );
   }
@@ -115,7 +136,7 @@ export default function Weather() {
           <h2 className="text-2xl font-bold text-gray-950">Weather intelligence</h2>
           <p className="text-sm text-gray-500 mt-1">Forecasts and field predictions for {weather.location || "your farms"}.</p>
         </div>
-        <button onClick={load} disabled={refreshing} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-green-300 disabled:opacity-60">
+        <button onClick={() => load()} disabled={refreshing} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-green-300 disabled:opacity-60">
           <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /> Refresh forecast
         </button>
       </div>
@@ -174,6 +195,25 @@ export default function Weather() {
           </div>
         </section>
       </div>
+
+      {hasFarmLocation && (
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
+          <div>
+            <h3 className="font-bold text-gray-900">Weather at {farm?.name || "your farm"}</h3>
+            <p className="text-xs text-gray-500 mt-1">Open-Meteo forecast for the saved farm pin. Click the marker for current conditions.</p>
+          </div>
+          <MapView
+            height={320}
+            farm={{
+              ...farm,
+              lat: latitude,
+              lng: longitude,
+              temperature: current.temperatureC ?? today.temperatureC,
+              forecast: `${today.description || LABELS[today.icon] || "Forecast"} · ${today.precipitationProbability ?? 0}% rain today`,
+            }}
+          />
+        </section>
+      )}
     </div>
   );
 }

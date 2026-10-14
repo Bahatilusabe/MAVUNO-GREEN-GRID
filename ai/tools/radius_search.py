@@ -1,54 +1,126 @@
+import math
 import os
+
 import requests
 
-def search_nearby_resources(lat: float, lng: float, radius_km: float = 5.0, resource_type: str = "market") -> list:
-    """
-    Searches for regional locations and conditions using Open-Meteo's geocoding 
-    and weather/soil grid, avoiding Overpass API timeouts.
-    """
-    # Use Open-Meteo search/geocoding or structured location matching around the coords
-    url = "https://api.open-meteo.com/v1/forecast"
-    params = {
-        "latitude": lat,
-        "longitude": lng,
-        "current": ["temperature_2m", "relative_humidity_2m"]
-    }
 
-    response = requests.get(url, params=params)
-    if response.status_code != 200:
-        raise RuntimeError(f"Open-Meteo API Error ({response.status_code}): {response.text}")
+OVERPASS_URL = os.getenv("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+RESOURCE_FILTERS = {
+    # Public map leads; being listed does not mean the site is currently buying.
+    "market": [
+        '["amenity"="marketplace"]',
+        '["shop"="wholesale"]',
+        '["shop"="greengrocer"]',
+        '["shop"="supermarket"]',
+        '["craft"="food"]',
+        '["industrial"="food"]',
+        '["industrial"="food_processing"]',
+    ],
+    "cold_store": [
+        '["industrial"="cold_storage"]',
+        '["building"="warehouse"]["name"~"cold|storage|cool",i]',
+    ],
+    "water": [
+        '["natural"="water"]',
+        '["man_made"="water_well"]',
+        '["amenity"="drinking_water"]',
+    ],
+}
 
-    data = response.json()
-    
-    # Return structured local grid point info representing regional agricultural data
-    results = [
-        {
-            "name": f"Regional Agricultural Hub ({resource_type.capitalize()})",
-            "type": resource_type,
-            "lat": lat + 0.02,
-            "lng": lng + 0.02,
-            "status": "Active & Accessible",
-            "temperature_c": data.get("current", {}).get("temperature_2m")
-        },
-        {
-            "name": f"Local Cooperative Collection Center",
-            "type": resource_type,
-            "lat": lat - 0.015,
-            "lng": lng - 0.01,
-            "status": "Open for intake",
-            "temperature_c": data.get("current", {}).get("temperature_2m")
-        }
+
+def _distance_km(lat_a: float, lng_a: float, lat_b: float, lng_b: float) -> float:
+    radians = math.radians
+    delta_lat = radians(lat_b - lat_a)
+    delta_lng = radians(lng_b - lng_a)
+    haversine = (
+        math.sin(delta_lat / 2) ** 2
+        + math.cos(radians(lat_a))
+        * math.cos(radians(lat_b))
+        * math.sin(delta_lng / 2) ** 2
+    )
+    return 6371 * 2 * math.atan2(math.sqrt(haversine), math.sqrt(1 - haversine))
+
+
+def search_nearby_resources(
+    lat: float,
+    lng: float,
+    radius_km: float = 5.0,
+    resource_type: str = "market",
+    limit: int = 10,
+) -> list:
+    """Return mapped OpenStreetMap resources within the requested radius."""
+    filters = RESOURCE_FILTERS.get(resource_type)
+    if not filters:
+        raise ValueError(f"Unsupported resource type: {resource_type}")
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        raise ValueError("Coordinates are outside valid latitude/longitude ranges")
+
+    radius_m = max(100, min(int(radius_km * 1000), 50_000))
+    clauses = [
+        f"{element}{tag_filter}(around:{radius_m},{lat},{lng});"
+        for tag_filter in filters
+        for element in ("node", "way", "relation")
     ]
+    query = f"[out:json][timeout:15];({''.join(clauses)});out center 200;"
 
-    return results
+    response = requests.post(
+        OVERPASS_URL,
+        data={"data": query},
+        headers={"User-Agent": "MAVUNO-Green-Grid/1.0", "Accept": "application/json"},
+        timeout=20,
+    )
+    response.raise_for_status()
 
-if __name__ == "__main__":
-    TEST_LAT = -1.2921
-    TEST_LNG = 36.8219
-    try:
-        places = search_nearby_resources(TEST_LAT, TEST_LNG, radius_km=10.0, resource_type="market")
-        print(f"Success! Found {len(places)} resources:")
-        for p in places:
-            print(f"- {p['name']} at ({p['lat']}, {p['lng']})")
-    except Exception as e:
-        print(f"Error: {e}")
+    resources = []
+    for element in response.json().get("elements", []):
+        point_lat = element.get("lat", element.get("center", {}).get("lat"))
+        point_lng = element.get("lon", element.get("center", {}).get("lon"))
+        if point_lat is None or point_lng is None:
+            continue
+
+        distance = _distance_km(lat, lng, float(point_lat), float(point_lng))
+        if distance > radius_km:
+            continue
+
+        tags = element.get("tags") or {}
+        address = ", ".join(
+            str(tags[key]) for key in (
+                "addr:housenumber", "addr:street", "addr:place", "addr:suburb", "addr:city", "addr:county"
+            ) if tags.get(key)
+        ) or None
+        buyer_type = (
+            "Produce market" if tags.get("amenity") == "marketplace" else
+            "Wholesaler prospect" if tags.get("shop") == "wholesale" else
+            "Produce retailer prospect" if tags.get("shop") == "greengrocer" else
+            "Retail buyer prospect" if tags.get("shop") == "supermarket" else
+            "Food processor prospect" if tags.get("craft") == "food" or "food" in tags.get("industrial", "") else
+            "Mapped market site"
+        ) if resource_type == "market" else resource_type.replace("_", " ").title()
+        resources.append(
+            {
+                "name": tags.get("name") or tags.get("name:en") or "Unnamed mapped site",
+                "type": resource_type,
+                "buyer_type": buyer_type,
+                "lat": float(point_lat),
+                "lng": float(point_lng),
+                "address": address,
+                "phone": tags.get("contact:phone") or tags.get("contact:mobile") or tags.get("phone"),
+                "website": tags.get("contact:website") or tags.get("website"),
+                "distance_km": round(distance, 2),
+                "source": "OpenStreetMap",
+                "map_url": f"https://www.google.com/maps/search/?api=1&query={point_lat},{point_lng}",
+                "tags": {
+                    key: tags[key]
+                    for key in (
+                        "amenity", "natural", "man_made", "industrial", "building", "shop", "craft",
+                        "operator", "brand", "phone", "contact:phone", "contact:mobile", "website",
+                        "contact:website", "addr:housenumber", "addr:street", "addr:place", "addr:suburb",
+                        "addr:city", "addr:county",
+                    )
+                    if tags.get(key)
+                },
+            }
+        )
+
+    resources.sort(key=lambda resource: resource["distance_km"])
+    return resources[: max(1, min(limit, 50))]

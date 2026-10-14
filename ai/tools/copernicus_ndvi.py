@@ -14,11 +14,11 @@ def get_satellite_ndvi(lat: float, lng: float) -> dict:
     # Graceful fallback if keys are missing
     if not client_id or not client_secret:
         return {
-            "ndvi_score": 0.65,
+            "ndvi_score": None,
             "formula_used": "(Band 8 - Band 4) / (Band 8 + Band 4)",
-            "health_status": "Healthy / Vigorous (Simulated)",
+            "index_interpretation": "Unavailable",
             "assessment_date": datetime.now().strftime("%Y-%m-%d"),
-            "note": "CDSE Keys missing. Returning simulated Sentinel-2 calculation."
+            "note": "CDSE keys are missing; no satellite measurement was available."
         }
 
     # 1. Authenticate with Copernicus CDSE Keycloak
@@ -110,17 +110,20 @@ def get_satellite_ndvi(lat: float, lng: float) -> dict:
             latest_date = item.get("interval", {}).get("from", "")[:10]
             break
 
-    status = "Unknown"
+    status = "Unavailable"
     if latest_ndvi is not None:
-        if latest_ndvi > 0.6: status = "Healthy / Vigorous canopy"
-        elif latest_ndvi > 0.4: status = "Moderate health (monitor for stress)"
-        elif latest_ndvi > 0.2: status = "Stressed / Sparse vegetation"
-        else: status = "Bare soil or dead crops"
+        if latest_ndvi > 0.6: status = "High vegetation index; not a crop-specific health diagnosis"
+        elif latest_ndvi > 0.4: status = "Moderate vegetation index; not a crop-specific health diagnosis"
+        elif latest_ndvi > 0.2: status = "Low vegetation index; interpretation depends on land cover and image quality"
+        else: status = "Very low or negative vegetation index; bare soil, water, mixed cover, or quality effects are possible"
 
     return {
         "ndvi_score": latest_ndvi,
-        "health_status": status,
+        "index_interpretation": status,
         "assessment_date": latest_date,
+        "period_start": start_date.strftime("%Y-%m-%d"),
+        "period_end": end_date.strftime("%Y-%m-%d"),
+        "spatial_scope": "area average over an approximately 100 m by 100 m footprint centered on the farm point",
         "satellite": "Sentinel-2 L2A (Copernicus)",
         "formula_used": "(Band 8 - Band 4) / (Band 8 + Band 4)"
     }

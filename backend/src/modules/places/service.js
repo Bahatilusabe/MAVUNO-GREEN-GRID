@@ -9,7 +9,16 @@ const CELL_DEG = 0.1;
 const CELL_MARGIN_KM = 8; // half-diagonal of a 0.1 degree cell, so one fetch covers any point inside it
 
 const FILTERS = {
-  market: ['["amenity"="marketplace"]'],
+  // OSM leads for produce sales. These are prospects, not verified buyers.
+  market: [
+    '["amenity"="marketplace"]',
+    '["shop"="wholesale"]',
+    '["shop"="greengrocer"]',
+    '["shop"="supermarket"]',
+    '["craft"="food"]',
+    '["industrial"="food"]',
+    '["industrial"="food_processing"]',
+  ],
   cold_store: [
     '["industrial"="cold_storage"]',
     '["building"="warehouse"]["name"~"cold|storage|cool|fridge",i]',
@@ -22,10 +31,24 @@ const PARTNER_TYPES = { market: ["buyer", "processor"], cold_store: ["storage"],
 
 export const PLACE_TYPES = Object.keys(FILTERS);
 
-const TAG_KEYS = ["amenity", "natural", "man_made", "industrial", "building", "operator", "opening_hours", "website"];
+const TAG_KEYS = [
+  "amenity", "natural", "man_made", "industrial", "building", "operator", "brand", "shop", "craft",
+  "opening_hours", "website", "contact:website", "phone", "contact:phone", "contact:mobile",
+  "addr:housenumber", "addr:street", "addr:place", "addr:suburb", "addr:city", "addr:county",
+];
 
 const toRad = (d) => (d * Math.PI) / 180;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function safeWebsite(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    return ["http:", "https:"].includes(url.protocol) ? url.toString().slice(0, 500) : null;
+  } catch {
+    return null;
+  }
+}
 
 function haversineKm(aLat, aLng, bLat, bLng) {
   const dLat = toRad(bLat - aLat);
@@ -37,7 +60,7 @@ function haversineKm(aLat, aLng, bLat, bLng) {
 }
 
 const snap = (v) => Math.round(v / CELL_DEG) * CELL_DEG;
-const cellKey = (lat, lng) => `${snap(lat).toFixed(1)},${snap(lng).toFixed(1)}`;
+const cellKey = (lat, lng, type) => `${type === "market" ? "seller-v2:" : ""}${snap(lat).toFixed(1)},${snap(lng).toFixed(1)}`;
 
 function buildQuery(type, lat, lng, radiusM) {
   const parts = FILTERS[type].flatMap((f) =>
@@ -78,7 +101,17 @@ function normalize(el, type) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   const t = el.tags ?? {};
   const tags = {};
-  for (const k of TAG_KEYS) if (t[k]) tags[k] = String(t[k]).slice(0, 100);
+  for (const k of TAG_KEYS) {
+    if (!t[k]) continue;
+    const value = String(t[k]).slice(0, k.includes("website") ? 160 : 80);
+    tags[k] = value;
+    if (JSON.stringify(tags).length > 1900) delete tags[k];
+  }
+  const address = [t["addr:housenumber"], t["addr:street"], t["addr:place"], t["addr:suburb"], t["addr:city"], t["addr:county"]]
+    .filter(Boolean)
+    .join(", ");
+  const phone = t["contact:phone"] ?? t["contact:mobile"] ?? t.phone ?? null;
+  const website = t["contact:website"] ?? t.website ?? null;
   return {
     sid: `${type}:${el.type}/${el.id}`,
     type,
@@ -86,6 +119,9 @@ function normalize(el, type) {
     lat: Number(lat.toFixed(6)),
     lng: Number(lng.toFixed(6)),
     tags: JSON.stringify(tags),
+    phone: phone ? String(phone).slice(0, 100) : null,
+    website: safeWebsite(website),
+    address: address.slice(0, 500) || null,
   };
 }
 
@@ -159,20 +195,20 @@ async function nearbyPartners(type, lat, lng, radiusKm) {
   const dLng = radiusKm / (111 * Math.max(Math.cos(toRad(lat)), 0.01));
   const placeholders = types.map((_, i) => `:${i + 5}`).join(", ");
   const { rows } = await query(
-    `SELECT id AS "id", name AS "name", type AS "partnerType", lat AS "lat", lng AS "lng",
-            price_per_kg AS "pricePerKg", capacity_kg AS "capacityKg"
-       FROM partners
-      WHERE status = 'approved' AND accepting = 1
-        AND lat BETWEEN :1 AND :2 AND lng BETWEEN :3 AND :4
-        AND type IN (${placeholders})`,
+    `SELECT p.id AS "id", p.name AS "name", p.type AS "partnerType", p.lat AS "lat", p.lng AS "lng",
+            p.price_per_kg AS "pricePerKg", p.capacity_kg AS "capacityKg", u.phone AS "phone"
+       FROM partners p LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.status = 'approved' AND p.accepting = 1
+        AND p.lat BETWEEN :1 AND :2 AND p.lng BETWEEN :3 AND :4
+        AND p.type IN (${placeholders})`,
     [lat - dLat, lat + dLat, lng - dLng, lng + dLng, ...types]
   );
-  return rows.map((r) => ({ ...r, kind: "partner" }));
+  return rows.map((r) => ({ ...r, kind: "partner", buyerType: r.partnerType }));
 }
 
 export async function nearbyPlaces({ lat, lng, radiusKm, type, limit }) {
   const bucket = BUCKETS.find((b) => b >= radiusKm) ?? BUCKETS[BUCKETS.length - 1];
-  const cell = cellKey(lat, lng);
+  const cell = cellKey(lat, lng, type);
 
   const fresh = await query(
     `SELECT 1 AS "ok" FROM geo_fetches
@@ -202,7 +238,27 @@ export async function nearbyPlaces({ lat, lng, radiusKm, type, limit }) {
     [type, lat - dLat, lat + dLat, lng - dLng, lng + dLng]
   );
 
-  const osm = rows.map((r) => ({ ...r, kind: "place", type }));
+  const osm = rows.map((r) => {
+    let tags = {};
+    try { tags = typeof r.tags === "string" ? JSON.parse(r.tags) : (r.tags ?? {}); } catch { /* older cache row */ }
+    const category = tags.amenity === "marketplace" ? "Produce market"
+      : tags.shop === "wholesale" ? "Wholesaler prospect"
+        : tags.shop === "greengrocer" ? "Produce retailer prospect"
+          : tags.shop === "supermarket" ? "Retail buyer prospect"
+            : (tags.craft === "food" || tags.industrial?.includes("food")) ? "Food processor prospect"
+              : "Mapped market site";
+    return {
+      ...r,
+      kind: "place",
+      type,
+      tags,
+      phone: tags["contact:phone"] ?? tags["contact:mobile"] ?? tags.phone ?? null,
+      website: safeWebsite(tags["contact:website"] ?? tags.website),
+      address: [tags["addr:housenumber"], tags["addr:street"], tags["addr:place"], tags["addr:suburb"], tags["addr:city"], tags["addr:county"]].filter(Boolean).join(", ") || null,
+      buyerType: category,
+      mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.lat},${r.lng}`)}`,
+    };
+  });
   const partners = await nearbyPartners(type, lat, lng, radiusKm);
 
   const results = [...partners, ...osm]
