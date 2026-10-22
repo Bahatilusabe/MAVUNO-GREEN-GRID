@@ -1,100 +1,115 @@
-import { Leaf, Check, X, AlertCircle } from "lucide-react";
+import { AlertCircle, Check, Inbox, Leaf, X } from "lucide-react";
 import { fmt } from "../../shared/utils";
+import Badge from "../../shared/ui/Badge";
+import Button from "../../shared/ui/Button";
+import { Card, CardHeader, CardTitle, CardBody } from "../../shared/ui/Card";
+import EmptyState from "../../shared/ui/EmptyState";
+import { normalizeStatus, statusTone, titleStatus } from "../../shared/status";
 
-const STATUS_STYLES = {
-  accepted: "bg-green-100 text-green-800 border-green-200",
-  declined: "bg-red-100 text-red-800 border-red-200",
-  pending: "bg-amber-100 text-amber-800 border-amber-200",
-  default: "bg-gray-100 text-gray-800 border-gray-200",
-};
-
-export default function RequestsTab({ requests, stats, accepting, onDecide }) {
+export default function RequestsTab({ requests, stats, accepting, onDecide, busyId }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-        <div className="p-2 bg-green-100 text-green-700 rounded-lg shadow-2xs">
-          <Leaf aria-hidden="true" size={18} />
-        </div>
-        <h3 className="text-base font-bold text-gray-900">Incoming Farmer Requests</h3>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Incoming Farmer Requests</CardTitle>
+        <span className="text-xs font-semibold text-muted-foreground">
+          {requests.length} total
+        </span>
+      </CardHeader>
 
-      <div className="space-y-3">
+      <CardBody className="space-y-3">
+        {requests.length === 0 && (
+          <EmptyState
+            compact
+            icon={Inbox}
+            title="No incoming requests"
+            text="When a farmer sends you produce from the market, it lands here."
+          />
+        )}
+
         {requests.map((r) => {
           const tooBig = r.kg > stats.remaining;
+          const pending = normalizeStatus(r.status) === "pending";
           const blocked = tooBig || !accepting;
-          const statusStyle = STATUS_STYLES[r.status.toLowerCase()] || STATUS_STYLES.default;
+          const busy = busyId === r.id;
 
           return (
-            <div 
-              key={r.id} 
-              className="bg-gray-50/70 border border-gray-100 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-100/50 transition-colors"
+            <article
+              key={r.id}
+              className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4 transition-colors duration-200 hover:bg-muted/70 sm:flex-row sm:items-center"
             >
-              <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                <div className="p-2.5 bg-green-100 text-green-700 rounded-xl flex-shrink-0 mt-0.5 shadow-2xs">
-                  <Leaf aria-hidden="true" size={18} />
-                </div>
+              <div className="flex min-w-0 flex-1 items-start gap-3.5">
+                <span
+                  className="mt-0.5 grid h-9 w-9 flex-none place-items-center rounded-xl bg-brand-50 text-brand-700"
+                  aria-hidden="true"
+                >
+                  <Leaf size={17} />
+                </span>
 
                 <div className="min-w-0 space-y-1">
-                  <strong className="block text-sm font-bold text-gray-900 truncate">{r.farmer}</strong>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600 font-medium">
+                  <strong className="block truncate text-sm font-bold text-foreground">{r.farmer}</strong>
+
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs font-medium text-muted-foreground">
                     <span>{r.crop}</span>
-                    <span>•</span>
-                    <span className="font-semibold text-gray-900">{fmt(r.kg)} kg</span>
-                    <span>•</span>
+                    <span aria-hidden="true">•</span>
+                    <span className="font-bold tabular text-foreground">{fmt(r.kg)} kg</span>
+                    <span aria-hidden="true">•</span>
                     <span>{r.county}</span>
-                    <span>•</span>
-                    <span>{r.km} km away</span>
-                  </div>
-                  <div className="text-xs text-gray-500 font-medium">
-                    Offer: <span className="font-bold text-green-800">KES {r.price}/kg</span> • Pickup: {r.date}
+                    {r.km != null && (
+                      <>
+                        <span aria-hidden="true">•</span>
+                        <span>{r.km} km away</span>
+                      </>
+                    )}
                   </div>
 
-                  {r.status === "Pending" && tooBig && (
-                    <div className="flex items-center gap-1.5 text-xs text-red-600 font-semibold pt-1" role="alert">
-                      <AlertCircle size={14} /> Exceeds free capacity ({fmt(stats.remaining)} kg).
-                    </div>
+                  <div className="text-xs font-medium text-muted-foreground">
+                    Offer: <span className="font-bold tabular text-brand-800">KES {r.price}/kg</span>
+                    {" · "}Pickup: {r.date}
+                  </div>
+
+                  {pending && tooBig && (
+                    <p
+                      className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-destructive"
+                      role="alert"
+                    >
+                      <AlertCircle size={14} aria-hidden="true" /> Exceeds free capacity (
+                      {fmt(stats.remaining)} kg).
+                    </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                {r.status === "Pending" ? (
+              <div className="flex flex-none items-center gap-2 self-end sm:self-center">
+                {pending ? (
                   <>
-                    <button
-                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 shadow-2xs ${
-                        blocked
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          : "bg-green-700 hover:bg-green-800 text-white cursor-pointer"
-                      }`}
-                      disabled={blocked}
-                      title={blocked ? "Not enough capacity or partner accepting is paused" : ""}
+                    <Button
+                      size="sm"
+                      icon={Check}
+                      disabled={blocked || busy}
+                      loading={busy}
+                      title={blocked ? "Not enough capacity, or the partner is paused" : ""}
                       onClick={() => onDecide(r, true)}
                     >
-                      <Check size={14} /> Accept
-                    </button>
-                    <button
-                      className="px-3.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon={X}
+                      disabled={busy}
                       onClick={() => onDecide(r, false)}
                     >
-                      <X size={14} /> Decline
-                    </button>
+                      Decline
+                    </Button>
                   </>
                 ) : (
-                  <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border ${statusStyle}`}>
-                    {r.status}
-                  </span>
+                  <Badge tone={statusTone(r.status)}>{titleStatus(r.status)}</Badge>
                 )}
               </div>
-            </div>
+            </article>
           );
         })}
-      </div>
-
-      {!requests.length && (
-        <div className="p-12 text-center text-gray-500 text-sm font-medium bg-white">
-          No incoming requests at the moment.
-        </div>
-      )}
-    </section>
+      </CardBody>
+    </Card>
   );
 }

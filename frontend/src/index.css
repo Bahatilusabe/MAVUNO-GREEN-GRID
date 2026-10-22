@@ -15,12 +15,25 @@
   text-rendering: optimizeLegibility;
 
   /* brand scale (also available as Tailwind classes: bg-brand-700, text-brand-800 ...) */
-  --g900: #0b3d20; --g800: #11502b; --g700: #1e7a46; --g500: #22a05a; --g100: #e6f4ec; --g50: #f3faf6;
+  --g900: #0b3d20; --g800: #11502b; --g700: #1e7a46; --g600: #1a6a3e; --g500: #22a05a; --g400: #46bd7c; --g300: #86d3a3; --g200: #c2e8d2; --g100: #e6f4ec; --g50: #f3faf6;
   --gold: #f59e0b; --gold-soft: #fef3c7; --soil: #7c5a3a; --soil-soft: #f3ebe0;
   --color-blue: #2563eb; --color-blue-dark: #1e3a8a; --color-red: #dc2626; --color-purple: #7c3aed;
   --color-green-mid: #2f9e5c; --color-green-soft: #86d3a3; --color-orange: #ea580c; --color-indigo: #4f46e5;
   --color-map-pin: #1e7a46; --color-map-market: #7f1d1d; --color-map-storage: #2563eb;
   --shadow-sm: 0 4px 14px rgb(11 61 32 / 12%);
+
+  /* elevation scale — every card, table and popover uses one of these */
+  --elev-xs: 0 1px 2px rgb(11 61 32 / 6%);
+  --elev-card: 0 1px 3px rgb(11 61 32 / 7%), 0 8px 24px -12px rgb(11 61 32 / 14%);
+  --elev-card-hover: 0 2px 6px rgb(11 61 32 / 8%), 0 18px 40px -16px rgb(11 61 32 / 22%);
+  --elev-pop: 0 12px 40px -8px rgb(11 61 32 / 28%);
+
+  /* motion scale — durations and easings shared by every transition and chart */
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 380ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
   /* shadcn tokens */
   --background: oklch(0.982 0.008 158);          /* #f4f9f6 page */
@@ -209,10 +222,15 @@ body {
   position: relative;
   min-height: 350px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: var(--card);
+  box-shadow: var(--elev-card);
+  transition: box-shadow var(--motion-base) var(--ease-out-soft);
+}
+
+.weather-landscape-card:hover {
+  box-shadow: var(--elev-card-hover);
 }
 
 .weather-landscape {
@@ -296,7 +314,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  color: #15382c;
+  color: var(--foreground);
 }
 
 .weather-condition, .weather-location {
@@ -319,18 +337,19 @@ body {
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: #1e7a46;
+  background: var(--g700);
+  box-shadow: var(--elev-xs);
 }
 
 .weather-location {
   align-items: flex-end;
-  color: #64756d;
+  color: var(--muted-foreground);
   font-size: .7rem;
   text-align: right;
 }
 
 .weather-location strong {
-  color: #15382c;
+  color: var(--foreground);
   font-size: 2rem;
   line-height: 1;
 }
@@ -340,8 +359,8 @@ body {
   justify-content: space-between;
   margin-top: .9rem;
   padding-top: .75rem;
-  border-top: 1px solid #edf1ee;
-  color: #718078;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
   font-size: .65rem;
 }
 
@@ -359,13 +378,13 @@ body {
   gap: .35rem;
   padding: .5rem .6rem;
   border-radius: .65rem;
-  color: #527064;
-  background: #f6faf7;
+  color: var(--muted-foreground);
+  background: var(--muted);
   font-size: .65rem;
 }
 
 .weather-forecast-day strong {
-  color: #15382c;
+  color: var(--foreground);
   font-size: .7rem;
 }
 
@@ -375,7 +394,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: .5rem;
-  color: #64756d;
+  color: var(--muted-foreground);
   font-size: .75rem;
   text-align: center;
 }
@@ -443,7 +462,11 @@ button, input, select, textarea {
   /* brand + agriculture colours as utilities */
   --color-brand-50: var(--g50);
   --color-brand-100: var(--g100);
+  --color-brand-200: var(--g200);
+  --color-brand-300: var(--g300);
+  --color-brand-400: var(--g400);
   --color-brand-500: var(--g500);
+  --color-brand-600: var(--g600);
   --color-brand-700: var(--g700);
   --color-brand-800: var(--g800);
   --color-brand-900: var(--g900);
@@ -451,6 +474,12 @@ button, input, select, textarea {
   --color-gold-soft: var(--gold-soft);
   --color-soil: var(--soil);
   --color-soil-soft: var(--soil-soft);
+
+  /* elevations as utilities */
+  --shadow-xs: var(--elev-xs);
+  --shadow-card: var(--elev-card);
+  --shadow-card-hover: var(--elev-card-hover);
+  --shadow-pop: var(--elev-pop);
 }
 
 @layer base {
@@ -462,5 +491,107 @@ button, input, select, textarea {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Shared surface + motion language.
+   Every portal renders cards, section headers and motion through these, so
+   radius, elevation, border and easing stay identical across farmer, partner,
+   admin and dashboard views.
+   --------------------------------------------------------------------------- */
+@layer components {
+  .surface {
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-card;
+  }
+
+  .surface-flat {
+    @apply rounded-2xl border border-border bg-card text-card-foreground;
+  }
+
+  /* The canonical interactive card: lifts and warms its border on hover. */
+  .surface-interactive {
+    @apply rounded-2xl border border-border bg-card text-card-foreground shadow-card
+      transition-[transform,box-shadow,border-color] duration-200 ease-[var(--ease-out-soft)]
+      hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover;
+  }
+
+  .surface-muted {
+    @apply rounded-2xl border border-border bg-muted/60;
+  }
+
+  /* Tinted panel used for hero headers, banners and the partner masthead. */
+  .brand-panel {
+    @apply relative overflow-hidden rounded-2xl text-white;
+    background-image: linear-gradient(135deg, var(--g900) 0%, var(--g700) 55%, var(--g600) 100%);
+  }
+
+  .brand-panel::after {
+    content: "";
+    @apply pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-25;
+    background: radial-gradient(circle, var(--g300) 0%, transparent 70%);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Numeric columns line up when the digits are tabular. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+
+  /* Entrance motion. --reveal-delay lets a grid stagger its children. */
+  .reveal {
+    animation: reveal-up var(--motion-slow) var(--ease-out-soft) both;
+  }
+
+  .reveal-d1 { animation-delay: 60ms; }
+  .reveal-d2 { animation-delay: 120ms; }
+  .reveal-d3 { animation-delay: 180ms; }
+  .reveal-d4 { animation-delay: 240ms; }
+  .reveal-d5 { animation-delay: 300ms; }
+  .reveal-d6 { animation-delay: 360ms; }
+
+  /* A value that ticks up when it mounts. */
+  .tick-in {
+    animation: tick-in var(--motion-slow) var(--ease-spring) both;
+  }
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes tick-in {
+  from { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.96); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-d1,
+  .reveal-d2,
+  .reveal-d3,
+  .reveal-d4,
+  .reveal-d5,
+  .reveal-d6,
+  .tick-in {
+    animation: none;
   }
 }

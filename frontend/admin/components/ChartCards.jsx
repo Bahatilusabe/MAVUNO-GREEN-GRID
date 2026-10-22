@@ -1,60 +1,154 @@
-import { MapPinned, Recycle, UsersRound } from "lucide-react";
-import { BarsChart, HBars, Donut } from "../../shared/charts";
-import { COLORS } from "../../shared/chartColors";
-import { WASTE, COUNTY_RISK } from "../data";
+import { useMemo } from "react";
+import { ChartPie, MapPinned, Recycle, ShieldCheck, UsersRound } from "lucide-react";
+import { BarsChart, ChartFrame, Donut, Gauge, HBars } from "../../shared/charts";
+import { COLORS, SERIES_COLORS } from "../../shared/chartColors";
+import Badge from "../../shared/ui/Badge";
 
-export function WasteCard() {
+/** Live vs sample is never implied by colour alone — it is always labelled. */
+function StateBadge({ live }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-        <div className="p-2 bg-green-100 text-green-700 rounded-lg shadow-2xs">
-          <Recycle aria-hidden="true" size={18} />
-        </div>
-        <h3 className="text-base font-bold text-gray-900">Waste avoided (tonnes / month)</h3>
-      </div>
-      <div className="pt-2">
-        <BarsChart data={WASTE} xKey="m" yKey="t" format={(v) => `${v} t`} />
-      </div>
-    </section>
+    <Badge tone={live ? "success" : "warning"} dot>
+      {live ? "Live" : "Sample data"}
+    </Badge>
   );
 }
 
-export function CountyRiskCard() {
+export function WasteChart({ data }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-        <div className="p-2 bg-amber-100 text-amber-700 rounded-lg shadow-2xs">
-          <MapPinned aria-hidden="true" size={18} />
-        </div>
-        <h3 className="text-base font-bold text-gray-900">Surplus risk by county</h3>
-      </div>
-      <div className="pt-2">
-        <HBars data={COUNTY_RISK} nameKey="county" valueKey="risk" />
-      </div>
-    </section>
+    <ChartFrame
+      title="Waste avoided"
+      subtitle="Tonnes diverted from loss, last six months"
+      icon={Recycle}
+      height={240}
+      badge={<Badge tone="warning">Sample data</Badge>}
+    >
+      <BarsChart
+        data={data}
+        xKey="m"
+        yKey="t"
+        color={SERIES_COLORS.waste}
+        height={220}
+        unit=" t"
+        label="Waste avoided"
+      />
+    </ChartFrame>
   );
 }
 
-export function StatusCard({ users }) {
-  const data = [
-    { name: "Active", color: COLORS.green },
-    { name: "Pending", color: COLORS.amber },
-    { name: "Suspended", color: COLORS.red },
-  ]
-    .map((s) => ({ ...s, value: users.filter((u) => u.status === s.name).length }))
-    .filter((s) => s.value > 0);
+export function CountyRiskChart({ counties, live }) {
+  return (
+    <ChartFrame
+      title="Surplus risk by county"
+      subtitle="Crops flagged medium or high risk, 0-100"
+      icon={MapPinned}
+      height={240}
+      badge={<StateBadge live={live} />}
+    >
+      <HBars data={counties} nameKey="county" valueKey="risk" height={220} />
+    </ChartFrame>
+  );
+}
+
+export function StatusDonut({ users, live }) {
+  const data = useMemo(() => {
+    const count = (status) => users.filter((u) => u.status === status).length;
+    return [
+      { name: "Active", value: count("Active"), color: COLORS.green },
+      { name: "Pending", value: count("Pending"), color: COLORS.amber },
+      { name: "Suspended", value: count("Suspended"), color: COLORS.red },
+    ].filter((d) => d.value > 0);
+  }, [users]);
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-        <div className="p-2 bg-blue-100 text-blue-700 rounded-lg shadow-2xs">
-          <UsersRound aria-hidden="true" size={18} />
-        </div>
-        <h3 className="text-base font-bold text-gray-900">Farmers by status</h3>
+    <ChartFrame
+      title="Farmers by status"
+      subtitle="Distribution of farmer accounts"
+      icon={UsersRound}
+      height={240}
+      badge={<StateBadge live={live} />}
+    >
+      {data.length ? (
+        <Donut data={data} height={220} />
+      ) : (
+        <p className="grid h-[220px] place-items-center text-xs font-medium text-muted-foreground">
+          No farmer accounts to chart yet.
+        </p>
+      )}
+    </ChartFrame>
+  );
+}
+
+export function PartnerMixChart({ partners, live }) {
+  const byType = useMemo(() => {
+    const counts = new Map();
+    for (const p of partners) counts.set(p.type, (counts.get(p.type) || 0) + 1);
+    return [...counts.entries()].map(([type, count]) => ({ type, count }));
+  }, [partners]);
+
+  return (
+    <ChartFrame
+      title="Partner mix"
+      subtitle="Partners on the platform by service type"
+      icon={ChartPie}
+      height={240}
+      badge={<StateBadge live={live} />}
+    >
+      {byType.length ? (
+        <BarsChart
+          data={byType}
+          xKey="type"
+          yKey="count"
+          color={COLORS.blue}
+          height={220}
+          label="Partners"
+        />
+      ) : (
+        <p className="grid h-[220px] place-items-center text-xs font-medium text-muted-foreground">
+          No partner accounts to chart yet.
+        </p>
+      )}
+    </ChartFrame>
+  );
+}
+
+/** One figure in the platform summary grid. */
+function Figure({ label, value }) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-sm font-bold tabular text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+export function PlatformSummaryChart({ totals, live }) {
+  const activeRate = totals.farmers ? Math.round((totals.active / totals.farmers) * 100) : 0;
+
+  return (
+    <ChartFrame
+      title="Platform summary"
+      subtitle="Account health across the whole grid"
+      icon={ShieldCheck}
+      height={240}
+      badge={<StateBadge live={live} />}
+    >
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,190px)_1fr] sm:items-center">
+        <Gauge
+          value={activeRate}
+          label="Active farmers"
+          caption={`${totals.active} of ${totals.farmers}`}
+          color={COLORS.green}
+          height={190}
+        />
+        <dl className="grid grid-cols-2 gap-3">
+          <Figure label="Farms" value={totals.farms} />
+          <Figure label="Area" value={`${totals.areaHa} ha`} />
+          <Figure label="Expected harvest" value={`${totals.tons.toFixed(1)} t`} />
+          <Figure label="Match requests" value={totals.matchRequests} />
+          <Figure label="Pending requests" value={totals.pendingMatches} />
+          <Figure label="Partners with an account" value={`${totals.linkedPartners} / ${totals.partners ?? "—"}`} />
+        </dl>
       </div>
-      <div className="pt-2">
-        <Donut data={data} />
-      </div>
-    </section>
+    </ChartFrame>
   );
 }

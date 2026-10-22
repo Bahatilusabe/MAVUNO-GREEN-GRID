@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { CloudRain, CloudSun, Sun, CloudLightning, MapPin, RefreshCw } from "lucide-react";
+import { CloudLightning, CloudRain, CloudSun, MapPin, RefreshCw, Sun } from "lucide-react";
 import { fetchWeatherForecast } from "../../shared/data";
+import Badge from "../../shared/ui/Badge";
 
 const WEATHER_ICONS = {
   partlyCloudy: CloudSun,
@@ -16,12 +17,19 @@ const WEATHER_LABELS = {
   sunny: "Clear sky",
 };
 
-const formatForecastDate = (date) => new Intl.DateTimeFormat("en-KE", {
-  weekday: "long",
-  day: "numeric",
-  month: "short",
-}).format(new Date(`${date}T12:00:00`));
+const formatForecastDate = (date) =>
+  new Intl.DateTimeFormat("en-KE", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${date}T12:00:00`));
 
+/**
+ * Live weather for the farm's coordinates.
+ *
+ * The forecast comes from Open-Meteo through the platform's weather module,
+ * so the farmer and the admin see the same numbers.
+ */
 export default function WeatherCard() {
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
@@ -45,14 +53,17 @@ export default function WeatherCard() {
   const currentLabel = WEATHER_LABELS[weather?.forecast?.[0]?.icon] || "Live forecast";
 
   return (
-    <section className="weather-landscape-card">
+    <section className="weather-landscape-card h-full">
       <div className="weather-landscape">
         <div className="weather-sky" />
         <div className="weather-sun" />
         <div className="weather-hill weather-hill-one" />
         <div className="weather-hill weather-hill-two" />
         <div className="weather-water">
-          <span /><span /><span /><span />
+          <span />
+          <span />
+          <span />
+          <span />
         </div>
         <div className="weather-hill weather-hill-three" />
         <div className="weather-tree weather-tree-one" />
@@ -62,39 +73,50 @@ export default function WeatherCard() {
 
       <div className="weather-content">
         {error ? (
-          <div className="weather-error">
-            Live weather is unavailable right now. Please try again later.
-          </div>
+          <div className="weather-error">Live weather is unavailable right now.</div>
         ) : !weather ? (
           <div className="weather-loading">
-            <RefreshCw size={16} className="animate-spin" /> Loading live forecast…
+            <RefreshCw size={16} className="animate-spin" aria-hidden="true" /> Loading live
+            forecast…
           </div>
         ) : (
           <>
             <div className="weather-current">
               <div className="weather-condition">
-                <div className="weather-icon-bubble"><CurrentIcon size={24} /></div>
+                <div className="weather-icon-bubble">
+                  <CurrentIcon size={24} aria-hidden="true" />
+                </div>
                 <span>{currentLabel}</span>
               </div>
+
               <div className="weather-location">
                 <div className="flex items-center justify-end gap-1">
-                  <MapPin size={14} /> <span>{weather.location || "Kirinyaga"}</span>
+                  <MapPin size={14} aria-hidden="true" />
+                  <span>{weather.location || "Kirinyaga"}</span>
                 </div>
                 <span>{formatForecastDate(weather.forecast?.[0]?.date)}</span>
                 <strong>{Math.round(Number(current?.temperatureC ?? 0))}°C</strong>
               </div>
             </div>
+
             <div className="weather-details">
-              <span>{current?.windSpeedKph ? `${Math.round(current.windSpeedKph)} km/h wind` : `${weather.forecast?.[0]?.precipitationProbability ?? 0}% rain`}</span>
-              <span>Open-Meteo live data</span>
+              <span>
+                {current?.windSpeedKph
+                  ? `${Math.round(current.windSpeedKph)} km/h wind`
+                  : `${weather.forecast?.[0]?.precipitationProbability ?? 0}% rain`}
+              </span>
+              <Badge tone="success" className="bg-transparent">
+                Open-Meteo live data
+              </Badge>
             </div>
+
             <div className="weather-forecast">
               {weather.forecast?.slice(1, 4).map(({ date, day, temperatureC, icon }) => {
                 const Icon = WEATHER_ICONS[icon] || CloudSun;
                 return (
                   <div key={date} className="weather-forecast-day">
                     <span>{day}</span>
-                    <Icon size={16} />
+                    <Icon size={16} aria-hidden="true" />
                     <strong>{temperatureC}°C</strong>
                   </div>
                 );

@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { Handshake, Sprout, Tractor, Truck, ChevronRight } from "lucide-react";
 import { Toaster } from "sonner";
 import Loader from "../shared/Loader";
+import { VIEWS, navigate } from "../shared/nav";
+import { Card } from "../shared/ui/Card";
+import { Reveal } from "../shared/ui/Motion";
 
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
@@ -10,116 +13,115 @@ const PartnerPortal = lazy(() => import("../partner/PartnerPortal"));
 
 const FARMER_VIEWS = ["overview", "farms", "crops", "opportunities", "recs", "market", "storage", "transport", "weather", "impact", "messages", "settings"];
 
-const LINKS = [
-  ["/", "Home"],
-  ["/dashboard", "Farmer dashboard"],
-  ["/farmer", "Farmer portal"],
-  ["/admin", "Admin"],
-  ["/partner", "Partner"],
-];
-
 const subscribe = (cb) => {
   window.addEventListener("hashchange", cb);
   return () => window.removeEventListener("hashchange", cb);
 };
 const getPath = () => window.location.hash.replace(/^#/, "").replace(/\/+$/, "") || "/";
-const navigate = (to) => { window.location.hash = to; };
+
+/** The four working areas of the platform, in the order a new user meets them. */
+const PORTALS = [
+  [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "/dashboard"],
+  [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "/farmer"],
+  [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "/admin"],
+  [Truck, "Partner portal", "Requests, orders, capacity and pricing", "/partner"],
+];
 
 function Home() {
-  const cards = [
-    [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "/dashboard"],
-    [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "/farmer"],
-    [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "/admin"],
-    [Truck, "Partner portal", "Requests, orders, capacity and pricing", "/partner"],
-  ];
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-8 font-sans">
-      <div className="max-w-4xl w-full space-y-8 text-center">
-        <div className="space-y-3">
-          <div className="inline-flex items-center justify-center p-3 bg-green-100 text-green-700 rounded-2xl shadow-xs">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 font-sans sm:p-8">
+      <div className="w-full max-w-4xl space-y-8">
+        <div className="space-y-4 text-center">
+          <span className="inline-flex items-center justify-center rounded-2xl bg-brand-50 p-3 text-brand-700">
             <Sprout aria-hidden="true" size={32} />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">MAVUNO Green Grid</h1>
-          <p className="text-sm sm:text-base text-gray-500 font-medium">Pick a view to open and explore the agricultural platform.</p>
+          </span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+            MAVUNO Green Grid
+          </h1>
+          <p className="text-sm font-medium text-muted-foreground sm:text-base">
+            Pick an area to open. Every view shares the same data, navigation and charts.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          {cards.map(([Icon, title, text, to]) => (
-            <a 
-              key={to} 
-              href={`#${to}`} 
-              className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-green-300 transition-all group flex flex-col justify-between space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="p-3 bg-green-50 text-green-700 rounded-xl group-hover:bg-green-700 group-hover:text-white transition-colors">
-                  <Icon aria-hidden="true" size={24} />
-                </div>
-                <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <div className="space-y-1">
-                <strong className="text-base font-bold text-gray-900 group-hover:text-green-800 transition-colors block">{title}</strong>
-                <small className="text-xs text-gray-500 font-medium block leading-relaxed">{text}</small>
-              </div>
-            </a>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {PORTALS.map(([Icon, title, text, to], i) => (
+            <Reveal key={to} index={i}>
+              <Card interactive className="group h-full">
+                <a
+                  href={`#${to}`}
+                  className="flex h-full flex-col justify-between gap-4 focus-visible:outline-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-50 text-brand-700 transition-colors duration-200 group-hover:bg-brand-700 group-hover:text-white">
+                      <Icon aria-hidden="true" size={22} />
+                    </span>
+                    <ChevronRight
+                      size={18}
+                      className="text-muted-foreground transition-transform duration-200 group-hover:translate-x-1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <strong className="block text-base font-bold tracking-tight text-foreground transition-colors duration-200 group-hover:text-brand-800">
+                      {title}
+                    </strong>
+                    <small className="block text-xs font-medium leading-relaxed text-muted-foreground">
+                      {text}
+                    </small>
+                  </div>
+                </a>
+              </Card>
+            </Reveal>
           ))}
         </div>
+
+        <nav aria-label="All views" className="flex flex-wrap items-center justify-center gap-2">
+          {VIEWS.map((view) => (
+            <button
+              key={view.path}
+              type="button"
+              onClick={() => navigate(view.path)}
+              className="rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground transition-colors duration-200 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-800"
+            >
+              {view.label}
+            </button>
+          ))}
+        </nav>
       </div>
     </main>
   );
 }
 
-function Switcher({ path }) {
-  return (
-    <details className="fixed bottom-4 left-4 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-2 text-xs font-semibold group">
-      <summary className="cursor-pointer px-3 py-1.5 text-gray-700 hover:text-green-800 flex items-center gap-2 list-none">
-        <span>Switch view</span>
-      </summary>
-      <nav aria-label="Switch view" className="pt-2 mt-2 border-t border-gray-100 flex flex-col space-y-1">
-        {LINKS.map(([to, label]) => {
-          const isActive = (to === "/" ? path === "/" : path.startsWith(to));
-          return (
-            <a 
-              key={to} 
-              href={`#${to}`} 
-              aria-current={isActive ? "page" : undefined}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                isActive ? "bg-green-700 text-white" : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {label}
-            </a>
-          );
-        })}
-      </nav>
-    </details>
-  );
-}
-
 export default function App() {
   const path = useSyncExternalStore(subscribe, getPath, () => "/");
-  useEffect(() => { window.scrollTo(0, 0); }, [path]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [path]);
 
   const [, root, sub] = path.split("/");
   let page;
   switch (root) {
     case "dashboard":
-      page = <Dashboard userName="Samuel" onNavigate={(v) => navigate(`/farmer/${v}`)} />;
+      page = <Dashboard path="/dashboard" onNavigate={(v) => navigate(`/farmer/${v}`)} />;
       break;
     case "farmer": {
       const view = FARMER_VIEWS.includes(sub) ? sub : "overview";
       page = <FarmerPortal key={view} initialView={view} />;
       break;
     }
-    case "admin": page = <AdminDashboard />; break;
-    case "partner": page = <PartnerPortal />; break;
-    default: page = <Home />;
+    case "admin":
+      page = <AdminDashboard />;
+      break;
+    case "partner":
+      page = <PartnerPortal path="/partner" />;
+      break;
+    default:
+      page = <Home />;
   }
 
   return (
     <>
       <Suspense fallback={<Loader className="system-loader--page" />}>{page}</Suspense>
       <Toaster position="bottom-right" richColors closeButton />
-      {path !== "/" && <Switcher path={path} />}
     </>
   );
 }

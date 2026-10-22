@@ -11,15 +11,35 @@ export const INITIAL_FARMS = [
 ];
 
 export const OPPS = [
-  { id: 1, name: "Nairobi Fresh Markets", type: "Buyer", km: 68, cap: "1,500 kg", price: "KES 28/kg", note: "High demand", x: 38, y: 12 },
-  { id: 2, name: "Kagio Juice Processors", type: "Processor", km: 20, cap: "2,000 kg", price: "KES 20/kg", note: "Medium demand", x: 70, y: 32 },
+  { id: 1, name: "Nairobi Fresh Markets", type: "Buyers", km: 68, cap: "1,500 kg", price: "KES 28/kg", note: "High demand", x: 38, y: 12 },
+  { id: 2, name: "Kagio Juice Processors", type: "Processors", km: 20, cap: "2,000 kg", price: "KES 20/kg", note: "Medium demand", x: 70, y: 32 },
   { id: 3, name: "Kirieyaga Cold Storage", type: "Storage", km: 10, cap: "5,000 kg", price: "KES 12/kg/day", note: "Available", x: 52, y: 58 },
   { id: 4, name: "Wakulima Transporters", type: "Transport", km: 40, cap: "10 t", price: "KES 18/km", note: "Available", x: 30, y: 74 },
 ];
 
 import { COLORS } from "./chartColors";
 
-export const OPP_COLOR = { Buyer: COLORS.green, Processor: "var(--color-green-mid)", Storage: COLORS.blue, Transport: "var(--color-blue-dark)" };
+/**
+ * One vocabulary for opportunity types. The API sends `buyer`, `processor`,
+ * `cold_store`, `transport`; the UI shows the plural label, and the sample
+ * list uses the same labels so filtering works in and out of demo mode.
+ */
+export const OPP_TYPE = {
+  buyer: "Buyers",
+  processor: "Processors",
+  cold_store: "Storage",
+  storage: "Storage",
+  transport: "Transport",
+  recovery: "Recovery",
+};
+
+export const OPP_COLOR = {
+  Buyers: COLORS.green,
+  Processors: "var(--color-green-mid)",
+  Storage: COLORS.blue,
+  Transport: "var(--color-blue-dark)",
+  Recovery: COLORS.purple,
+};
 
 export const RECS = [
   { id: 1, kind: "Harvest", title: "High Surplus Risk – Tomatoes", text: "Expected surplus of 1,800 kg. Act within 72 hours.", cta: "View Plan", conf: 87, tone: "danger",
@@ -140,20 +160,27 @@ export async function fetchSurplusAlerts() {
   }
 }
 
-export async function fetchOpportunities() {
+export async function fetchOpportunities({ farmId, signal } = {}) {
+  const token = getToken();
+  // The opportunities endpoint is farmer-scoped, so it needs the session token.
+  if (!token) return OPPS;
+
   try {
-    const response = await fetch(`${API_URL}/opportunities`);
+    const params = farmId ? `?farmId=${encodeURIComponent(farmId)}` : "";
+    const response = await fetch(`${API_URL}/opportunities${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    });
+    if (response.status === 401 || response.status === 403) return OPPS;
     if (!response.ok) {
       throw new Error(`Backend returned HTTP ${response.status}`);
     }
     const payload = await response.json();
+    if (Array.isArray(payload?.opportunities)) return payload.opportunities;
     if (Array.isArray(payload)) return payload;
-    if (payload?.status === "success" && Array.isArray(payload.data)) {
-      return payload.data;
-    }
     throw new Error("Backend returned an invalid opportunities payload");
   } catch (err) {
     console.error("Failed to fetch opportunities from backend, falling back to static data:", err);
-    return OPPS; 
+    return OPPS;
   }
 }

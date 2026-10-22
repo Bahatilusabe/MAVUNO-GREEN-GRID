@@ -11,8 +11,13 @@ export const ORDERS_INIT = [
   { id: 102, farmer: "Grace Wanjiru", crop: "Tomatoes", kg: 400, price: 20, date: "Oct 14, 2026", status: "Scheduled" },
 ];
 
+/** The order lifecycle a partner can advance a request through. */
 export const STEPS = ["Scheduled", "In transit", "Delivered"];
-export const NEXT_LABEL = { Scheduled: "Mark in transit", "In transit": "Mark delivered" };
+
+export const NEXT_LABEL = {
+  Scheduled: "Mark in transit",
+  "In transit": "Mark delivered",
+};
 
 export const WEEKLY = [
   { day: "Mon", kg: 420 }, { day: "Tue", kg: 560 }, { day: "Wed", kg: 380 },

@@ -1,9 +1,32 @@
-import { useEffect, useState } from "react";
-import { Hand, TriangleAlert, Plus, ArrowRight } from "lucide-react";
-import { fetchSurplusAlerts, INITIAL_FARMS as FARMS, RECS } from "../shared/data";
-import { FARMER_NAV, FARMER_USER } from "../shared/nav";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Activity,
+  ArrowRight,
+  CloudSun,
+  Hand,
+  Link2,
+  Plus,
+  RefreshCw,
+  ShoppingCart,
+  Sparkles,
+  Sprout,
+  TrendingUp,
+  TriangleAlert,
+} from "lucide-react";
 import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
+import NotificationsPopover from "../shared/NotificationsPopover";
+import { navigate } from "../shared/nav";
+import { INITIAL_FARMS as FARMS, RECS } from "../shared/data";
+import { useOverview } from "../src/hooks/useOverview";
+import { useOpportunities } from "../src/hooks/useOpportunities";
+import { useMatches } from "../src/hooks/useMatches";
+import { useNotifications } from "../src/hooks/useNotifications";
+import { getUser } from "../src/lib/api";
+import Badge from "../shared/ui/Badge";
+import Button from "../shared/ui/Button";
+import { Reveal } from "../shared/ui/Motion";
+import { toCropRows, toSampleRows, worstAlert } from "./model";
 import KpiGrid from "./components/KpiGrid";
 import ForecastCard from "./components/ForecastCard";
 import CropsCard from "./components/CropsCard";
@@ -13,144 +36,314 @@ import PricesCard from "./components/PricesCard";
 import WeatherCard from "./components/WeatherCard";
 import ActivityCard from "./components/ActivityCard";
 
-const totals = {
-  farms: FARMS.length,
-  area: FARMS.reduce((s, f) => s + f.area, 0).toFixed(1),
-  tons: (FARMS.reduce((s, f) => s + f.kg, 0) / 1000).toFixed(1),
-  high: FARMS.filter((f) => f.risk === "High").length,
-};
+/** The sections of the page, in the order the sidebar lists them. */
+const SECTIONS = [
+  { key: "overview", label: "Overview", icon: Sprout },
+  { key: "forecast", label: "Harvest forecast", icon: TrendingUp },
+  { key: "crops", label: "My crops", icon: Activity },
+  { key: "recs", label: "Recommendations", icon: Sparkles },
+  { key: "opportunities", label: "Opportunities", icon: Link2 },
+  { key: "prices", label: "Market prices", icon: ShoppingCart },
+  { key: "weather", label: "Weather", icon: CloudSun },
+];
 
-export default function Dashboard({ onNavigate = () => {}, userName = "Samuel" }) {
+export default function Dashboard({ path = "/dashboard", onNavigate = () => {} }) {
+  const { data, error, loading, reload } = useOverview();
+  const { opportunities, isLive: opportunitiesLive } = useOpportunities();
+  const { requestFor } = useMatches();
+  const notifications = useNotifications();
+
   const [dismissed, setDismissed] = useState([]);
-  const [backendData, setBackendData] = useState(null);
-  const [globalImpact, setGlobalImpact] = useState(null);
-  
-  const recs = RECS.filter((r) => !dismissed.includes(r.id));
-  const liveAlert = backendData?.reduce(
-    (highest, alert) => !highest || alert.risk > highest.risk ? alert : highest,
-    null,
-  );
-  const showFallbackAlert = backendData === null && totals.high > 0 && recs.some((r) => r.id === 1);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [section, setSection] = useState("overview");
+  const observerRef = useRef(null);
 
-  useEffect(() => {
-    let active = true;
-    fetchSurplusAlerts().then((response) => {
-      if (!active || response?.status !== "success") return;
-      setBackendData(Array.isArray(response.data) ? response.data : []);
-      setGlobalImpact(response.global_impact ?? null);
-    });
-    return () => {
-      active = false;
+  // The signed-in farmer, not a hard-coded sample name.
+  const user = useMemo(() => {
+    const stored = getUser();
+    const name = stored?.name || "Samuel";
+    return {
+      name,
+      sub: stored?.county ? `${stored.county} County` : "Kirinyaga County",
+      initials: name
+        .split(" ")
+        .map((w) => w[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase(),
     };
   }, []);
 
+  const live = Boolean(data?.stats);
+
+  const totals = useMemo(() => {
+    const stats = data?.stats;
+    if (stats) {
+      return {
+        farms: Number(stats.farms || 0),
+        area: Number(stats.areaHa || 0),
+        tons: Number(stats.expectedKg || 0) / 1000,
+        high: Number(stats.highRiskCrops || 0),
+        atRiskKg: Number(stats.atRiskKg || 0),
+        impact: stats.aiGlobalImpact || null,
+      };
+    }
+
+    return {
+      farms: FARMS.length,
+      area: FARMS.reduce((s, f) => s + f.area, 0),
+      tons: FARMS.reduce((s, f) => s + f.kg, 0) / 1000,
+      high: FARMS.filter((f) => f.risk === "High").length,
+      atRiskKg: 0,
+      impact: null,
+    };
+  }, [data]);
+
+  const crops = useMemo(() => toCropRows(data) ?? toSampleRows(FARMS), [data]);
+
+  const recs = useMemo(() => RECS.filter((r) => !dismissed.includes(r.id)), [dismissed]);
+
+  // The worst surplus alert, chosen by risk score rather than by string order.
+  const alert = useMemo(() => worstAlert(data?.aiSurplusAlerts), [data]);
+  const showFallbackAlert = !live && totals.high > 0 && recs.length > 0;
+
+  // Keep the sidebar in step with the section in view.
+  useEffect(() => {
+    const nodes = SECTIONS.map((s) => document.getElementById(`dash-${s.key}`)).filter(Boolean);
+    if (!nodes.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setSection(visible.target.id.replace("dash-", ""));
+      },
+      { rootMargin: "-25% 0px -60% 0px", threshold: [0.05, 0.4] },
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    observerRef.current = observer;
+    return () => observer.disconnect();
+  }, [live]);
+
+  const jump = useCallback((key) => {
+    const node = document.getElementById(`dash-${key}`);
+    if (node) node.scrollIntoView({ behavior: "smooth", block: "start" });
+    else onNavigate(key);
+  }, [onNavigate]);
+
+  const dismissRec = useCallback((id) => {
+    setDismissed((cur) => (cur.includes(id) ? cur : [...cur, id]));
+  }, []);
+
+  const crumbs = [
+    { label: "Home", onClick: () => navigate("/") },
+    { label: "Farmer dashboard" },
+  ];
+
   return (
     <Shell
-      nav={FARMER_NAV}
-      active=""
-      onNavigate={onNavigate}
-      title="Dashboard"
-      subtitle="Your farms at a glance"
-      user={FARMER_USER}
-      alerts={2}
+      nav={SECTIONS.map((s) => [s.key, s.label, s.icon])}
+      active={section}
+      onNavigate={jump}
+      title="Farmer dashboard"
+      subtitle="Signals, forecasts and market signals across your grid"
+      user={user}
+      path={path}
+      breadcrumbs={crumbs}
+      alerts={notifications.unread}
+      onBell={() => setBellOpen((v) => !v)}
       aside={<Assistant />}
+      actions={
+        <Badge tone={live ? "success" : "warning"} dot>
+          {live ? "Live" : "Sample data"}
+        </Badge>
+      }
     >
-      <div className="space-y-6 pb-12">
-        
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-xl border border-gray-200 p-6 shadow-sm bg-gradient-to-r from-green-50/50 to-white">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
-              Good day, {userName} <Hand className="text-amber-500 inline-block" aria-hidden="true" size={22} />
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 font-medium">Here's how your farms are doing this week.</p>
-          </div>
-          <button 
-            className="px-4 py-2.5 bg-green-700 hover:bg-green-800 text-white font-semibold text-xs sm:text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 w-fit cursor-pointer" 
-            onClick={() => onNavigate("farms")}
-          >
-            <Plus size={16} /> Add Farm
-          </button>
-        </div>
+      {bellOpen && (
+        <NotificationsPopover
+          notifications={notifications}
+          onClose={() => setBellOpen(false)}
+        />
+      )}
 
-        {/* Live or Fallback Surplus Alert Banner */}
-        {liveAlert ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs" role="alert">
-            <div className="flex items-start gap-3.5">
-              <div className="p-2.5 bg-red-100 text-red-600 rounded-xl flex-shrink-0 mt-0.5">
-                <TriangleAlert aria-hidden="true" size={20} />
-              </div>
+      <div className="space-y-6 pb-12">
+        {/* Greeting */}
+        <Reveal index={0}>
+          <section className="brand-panel p-5 sm:p-6">
+            <div className="relative z-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div className="space-y-1">
-                <strong className="block text-sm font-bold text-red-900">
-                  Surplus alert · Week {liveAlert.week}
-                </strong>
-                <p className="text-xs text-red-700 leading-relaxed">{liveAlert.ai_explanation}</p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-red-800 font-semibold pt-1">
-                  <span>{Number(liveAlert.surplus_t).toLocaleString("en-KE", { maximumFractionDigits: 1 })} t surplus</span>
-                  {liveAlert.revenue_kes != null && (
-                    <span>· KES {Number(liveAlert.revenue_kes).toLocaleString("en-KE")} revenue</span>
-                  )}
-                  <span>· Risk score: {Number(liveAlert.risk).toFixed(2)} / 1</span>
+                <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
+                  Good day, {user.name.split(" ")[0]}
+                  <Hand className="inline-block text-amber-300" aria-hidden="true" size={22} />
+                </h2>
+                <p className="text-xs font-medium text-white/75 sm:text-sm">
+                  Here is how your farms are doing this week.
+                </p>
+              </div>
+
+              <Button
+                variant="gold"
+                icon={Plus}
+                onClick={() => onNavigate("farms")}
+                className="self-start sm:self-auto"
+              >
+                Add farm
+              </Button>
+            </div>
+          </section>
+        </Reveal>
+
+        {/* Sample-data notice */}
+        {error && (
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800"
+            role="status"
+          >
+            <Badge tone="warning">Sample data</Badge>
+            <span className="min-w-0 flex-1">{error}</span>
+            <Button size="sm" variant="outline" icon={RefreshCw} onClick={reload}>
+              Retry
+            </Button>
+          </div>
+        )}
+
+        {/* Surplus alert */}
+        <section id="dash-overview" className="scroll-mt-24">
+          {alert ? (
+            <div
+              className="flex flex-col justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 p-4 shadow-xs sm:flex-row sm:items-center sm:p-5"
+              role="alert"
+            >
+              <div className="flex items-start gap-3.5">
+                <span
+                  className="mt-0.5 grid h-10 w-10 flex-none place-items-center rounded-xl bg-red-100 text-red-600"
+                  aria-hidden="true"
+                >
+                  <TriangleAlert size={20} />
+                </span>
+                <div className="space-y-1">
+                  <strong className="block text-sm font-bold text-red-900">
+                    Surplus alert · Week {alert.week}
+                  </strong>
+                  <p className="text-xs leading-relaxed text-red-700">{alert.ai_explanation}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs font-semibold text-red-800">
+                    <span>
+                      {Number(alert.surplus_t ?? 0).toLocaleString("en-KE", {
+                        maximumFractionDigits: 1,
+                      })}{" "}
+                      t surplus
+                    </span>
+                    {alert.revenue_kes != null && (
+                      <span>· KES {Number(alert.revenue_kes).toLocaleString("en-KE")} revenue</span>
+                    )}
+                    <span>· Risk score {Number(alert.risk ?? 0).toFixed(2)} / 1</span>
+                  </div>
                 </div>
               </div>
+
+              <Button
+                variant="danger"
+                size="sm"
+                iconRight={ArrowRight}
+                onClick={() => onNavigate("recs")}
+                className="self-start sm:self-auto"
+              >
+                View plan
+              </Button>
             </div>
-            <button 
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 shadow-2xs cursor-pointer self-start sm:self-center" 
-              onClick={() => onNavigate("recs")}
+          ) : showFallbackAlert ? (
+            <div
+              className="flex flex-col justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 p-4 shadow-xs sm:flex-row sm:items-center sm:p-5"
+              role="alert"
             >
-              View Plan <ArrowRight size={14} />
-            </button>
-          </div>
-        ) : showFallbackAlert ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs" role="alert">
-            <div className="flex items-start gap-3.5">
-              <div className="p-2.5 bg-red-100 text-red-600 rounded-xl flex-shrink-0 mt-0.5">
-                <TriangleAlert aria-hidden="true" size={20} />
+              <div className="flex items-start gap-3.5">
+                <span
+                  className="mt-0.5 grid h-10 w-10 flex-none place-items-center rounded-xl bg-red-100 text-red-600"
+                  aria-hidden="true"
+                >
+                  <TriangleAlert size={20} />
+                </span>
+                <div className="space-y-1">
+                  <strong className="block text-sm font-bold text-red-900">
+                    High surplus risk on Tomatoes
+                  </strong>
+                  <p className="text-xs leading-relaxed text-red-700">
+                    1,800 kg may go unsold. Act within 72 hours.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <strong className="block text-sm font-bold text-red-900">High surplus risk on Tomatoes</strong>
-                <p className="text-xs text-red-700">1,800 kg may go unsold. Act within 72 hours.</p>
-              </div>
+
+              <Button
+                variant="danger"
+                size="sm"
+                iconRight={ArrowRight}
+                onClick={() => onNavigate("recs")}
+                className="self-start sm:self-auto"
+              >
+                View plan
+              </Button>
             </div>
-            <button 
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 flex-shrink-0 shadow-2xs cursor-pointer self-start sm:self-center" 
-              onClick={() => onNavigate("recs")}
-            >
-              View Plan <ArrowRight size={14} />
-            </button>
-          </div>
-        ) : null}
+          ) : null}
 
-        {/* KPI Grid Section */}
-        <KpiGrid totals={totals} globalImpact={globalImpact} onNavigate={onNavigate} />
+          {/* KPIs */}
+          <div className="mt-6">
+            <KpiGrid totals={totals} live={live} />
+          </div>
+        </section>
 
-        {/* Forecast & Crops Section (Grid 2 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7">
-            <ForecastCard />
+        {/* Forecast + crops */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div id="dash-forecast" className="scroll-mt-24 lg:col-span-7">
+            <Reveal index={1}>
+              <ForecastCard />
+            </Reveal>
           </div>
-          <div className="lg:col-span-5">
-            <CropsCard onNavigate={onNavigate} />
-          </div>
-        </div>
-
-        {/* Recommendations & Opportunities Section (Grid 2 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7">
-            <RecsCard recs={recs} onDismiss={(id) => setDismissed([...dismissed, id])} onNavigate={onNavigate} />
-          </div>
-          <div className="lg:col-span-5">
-            <OpportunitiesCard onNavigate={onNavigate} />
+          <div id="dash-crops" className="scroll-mt-24 lg:col-span-5">
+            <Reveal index={2}>
+              <CropsCard crops={crops} onNavigate={onNavigate} />
+            </Reveal>
           </div>
         </div>
 
-        {/* Prices, Weather & Activity Section (Grid 3 cols) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <PricesCard onNavigate={onNavigate} />
-          <WeatherCard />
-          <ActivityCard />
+        {/* Recommendations + opportunities */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div id="dash-recs" className="scroll-mt-24 lg:col-span-7">
+            <Reveal index={1}>
+              <RecsCard recs={recs} onDismiss={dismissRec} onNavigate={onNavigate} />
+            </Reveal>
+          </div>
+          <div id="dash-opportunities" className="scroll-mt-24 lg:col-span-5">
+            <Reveal index={2}>
+              <OpportunitiesCard
+                opportunities={opportunities}
+                live={opportunitiesLive}
+                requestFor={requestFor}
+                onNavigate={onNavigate}
+              />
+            </Reveal>
+          </div>
         </div>
 
+        {/* Prices, weather, activity */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div id="dash-prices" className="scroll-mt-24">
+            <PricesCard onNavigate={onNavigate} />
+          </div>
+          <div id="dash-weather" className="scroll-mt-24">
+            <WeatherCard />
+          </div>
+          <ActivityCard activity={data?.activity} />
+        </div>
+
+        {loading && (
+          <p className="flex items-center justify-center gap-2 pb-4 text-xs font-medium text-muted-foreground">
+            <RefreshCw size={13} className="animate-spin" aria-hidden="true" /> Syncing with the
+            platform…
+          </p>
+        )}
       </div>
     </Shell>
   );
