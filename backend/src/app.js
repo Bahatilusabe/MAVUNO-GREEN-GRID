@@ -20,6 +20,9 @@ import placesRoutes from "./modules/places/routes.js";
 import matchRoutes from "./modules/matches/routes.js";
 import opportunitiesRoutes from "./modules/opportunities/routes.js";
 import surplusAlertRoutes from "./modules/surplus-alerts/routes.js";
+import notificationRoutes from "./modules/notifications/routes.js";
+import partnerRoutes from "./modules/partners/routes.js";
+import adminRoutes from "./modules/admin/routes.js";
 
 export function createApp() {
   const app = express();
@@ -47,6 +50,9 @@ export function createApp() {
   v1Router.use("/places", placesRoutes);
   v1Router.use("/matches", matchRoutes);
   v1Router.use("/opportunities", opportunitiesRoutes);
+  v1Router.use("/notifications", notificationRoutes);
+  v1Router.use("/partners", partnerRoutes);
+  v1Router.use("/admin", adminRoutes);
 
   // AI chat supports guests and uses farm context when the request is authenticated.
   v1Router.use("/chat", rateLimit({ max: 20 }), chatRoutes);
