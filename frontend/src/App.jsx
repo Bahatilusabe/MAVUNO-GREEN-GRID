@@ -5,6 +5,7 @@ import Loader from "../shared/Loader";
 import { VIEWS, navigate } from "../shared/nav";
 import { Card } from "../shared/ui/Card";
 import { Reveal } from "../shared/ui/Motion";
+import { useTheme } from "./theme/useTheme";
 
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
@@ -92,6 +93,7 @@ function Home() {
 }
 
 export default function App() {
+  const { resolved } = useTheme();
   const path = useSyncExternalStore(subscribe, getPath, () => "/");
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -121,7 +123,7 @@ export default function App() {
   return (
     <>
       <Suspense fallback={<Loader className="system-loader--page" />}>{page}</Suspense>
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster theme={resolved} position="bottom-right" richColors closeButton />
     </>
   );
 }

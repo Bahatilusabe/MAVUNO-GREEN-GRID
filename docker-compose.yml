@@ -29,6 +29,8 @@ services:
       PORT: 8010
     ports:
       - "8010:8010"
+    volumes:
+      - ./ai:/app # Live-reload Python code changes
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=3)"]
       interval: 15s
@@ -54,6 +56,9 @@ services:
       AI_SURPLUS_URL: ${AI_SURPLUS_URL:-http://ai:8010/api/v1/surplus-alerts}
     ports:
       - "4000:4000"
+    volumes:
+      - ./backend:/app # Live-reload Node backend changes
+      - /app/node_modules # Protect Linux node_modules
     depends_on:
       oracle:
         condition: service_healthy
@@ -67,8 +72,12 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_TARGET: http://backend:4000
+      CHOKIDAR_USEPOLLING: "true" # Ensures Vite catches file updates on Windows Docker Desktop
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend:/app # Live-reload React/Vite UI changes
+      - /app/node_modules # Protect Linux node_modules
     depends_on:
       - backend
     networks:

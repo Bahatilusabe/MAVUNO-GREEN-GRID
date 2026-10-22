@@ -5,6 +5,7 @@ import { INITIAL_FARMS } from "../shared/data";
 import { FARMER_NAV, FARMER_USER } from "../shared/nav";
 import Shell from "../shared/Shell";
 import Assistant from "../shared/Assistant";
+import ThemeToggle from "../shared/ThemeToggle";
 import { COUNTIES } from "./constants";
 import { useFarms } from "../src/hooks/useFarms";
 import { getUser } from "../src/lib/api";
@@ -49,7 +50,6 @@ const demoCrops = () => INITIAL_FARMS.map((farm) => ({
 export default function FarmerPortal({ initialView = "overview" }) {
   const [view, setView] = useState(initialView);
 
-  // Live data from the API. When signed out or the API is down it falls back to demo data.
   const live = useFarms();
   const demo = Boolean(live.error);
   const [demoFarms, setDemoFarms] = useState(INITIAL_FARMS);
@@ -123,7 +123,6 @@ export default function FarmerPortal({ initialView = "overview" }) {
   const navTitle = (nav.find((n) => n[0] === activeNav) || nav[0])[1];
   const home = view === "overview";
 
-  // Farm-dependent screens wait for the first load instead of flashing "No farms yet"
   const farmViews = ["overview", "farms", "farm", "crops", "forecast", "storage"];
   const waiting = live.loading && !demo && farmViews.includes(view);
 
@@ -199,14 +198,17 @@ export default function FarmerPortal({ initialView = "overview" }) {
       alerts={unread}
       onBell={() => go("messages")}
       actions={
-        <select
-          value={county}
-          onChange={(e) => setCounty(e.target.value)}
-          aria-label="County"
-          className="bg-gray-50 border border-gray-200 text-gray-800 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 outline-none focus:border-green-600 transition-all cursor-pointer shadow-2xs"
-        >
-          {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <ThemeToggle variant="icon" />
+          <select
+            value={county}
+            onChange={(e) => setCounty(e.target.value)}
+            aria-label="County"
+            className="bg-gray-50 border border-gray-200 text-gray-800 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 outline-none focus:border-green-600 transition-all cursor-pointer shadow-2xs"
+          >
+            {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
+          </select>
+        </div>
       }
       aside={(
         <Assistant

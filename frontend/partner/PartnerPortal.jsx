@@ -18,14 +18,12 @@ import ListingTab from "./components/ListingTab";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** "2026-10-01" and "Oct 01, 2026" both have to land on the right weekday. */
 function weekdayOf(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return (date.getDay() + 6) % 7; // Monday = 0
 }
 
-/** Throughput per weekday, derived from the orders the partner actually holds. */
 function weeklyFrom(orders) {
   const buckets = new Map(DAYS.map((d, i) => [i, { day: d, kg: 0 }]));
 
@@ -65,7 +63,7 @@ export default function PartnerPortal({ path = "/partner" }) {
 
   const user = {
     name,
-    sub: partner?.county ? `${type} · ${partner.county}` : `${type} partner`,
+    sub: partner?.county ? `${type} partner · ${partner.county}` : `${type} partner`,
     initials: name
       .split(" ")
       .map((w) => w[0])
@@ -133,13 +131,55 @@ export default function PartnerPortal({ path = "/partner" }) {
     }
   };
 
+  let content;
+  switch (tab) {
+    case "requests":
+      content = (
+        <div className="space-y-6">
+          <RequestsTab
+            requests={requests}
+            stats={stats}
+            accepting={listing.accepting}
+            onDecide={handleDecide}
+            busyId={busyId}
+          />
+        </div>
+      );
+      break;
+    case "orders":
+      content = (
+        <div className="space-y-6">
+          <OrdersTab orders={orders} onAdvance={handleAdvance} busyId={busyId} />
+        </div>
+      );
+      break;
+    case "listing":
+      content = (
+        <div className="space-y-6">
+          <ListingTab
+            listing={listing}
+            load={stats.load}
+            onSave={handleSaveListing}
+            saving={saving}
+          />
+        </div>
+      );
+      break;
+    default:
+      content = <div className="p-12 text-center text-muted-foreground">Select a section from the sidebar.</div>;
+  }
+
   return (
     <Shell
       nav={nav}
       active={tab}
       onNavigate={setTab}
       title="Partner Portal"
-      subtitle="Requests, orders and capacity"
+      subtitle={
+        tab === "requests" ? "Manage incoming farmer requests" :
+        tab === "orders" ? "Track active shipments and deliveries" :
+        "Configure your service offering and capacity"
+      }
       user={user}
       path={path}
       breadcrumbs={crumbs}
@@ -220,37 +260,7 @@ export default function PartnerPortal({ path = "/partner" }) {
           <VolumeCard data={weekly ?? WEEKLY} live={Boolean(weekly)} />
         </div>
 
-        <div className="space-y-4">
-          <Tabs
-            tabs={[
-              { key: "requests", label: "Requests", badge: stats.pending },
-              { key: "orders", label: "Orders", badge: orders.length },
-              { key: "listing", label: "Listing" },
-            ]}
-            value={tab}
-            onChange={setTab}
-            ariaLabel="Partner sections"
-          />
-
-          {tab === "requests" && (
-            <RequestsTab
-              requests={requests}
-              stats={stats}
-              accepting={listing.accepting}
-              onDecide={handleDecide}
-              busyId={busyId}
-            />
-          )}
-          {tab === "orders" && <OrdersTab orders={orders} onAdvance={handleAdvance} busyId={busyId} />}
-          {tab === "listing" && (
-            <ListingTab
-              listing={listing}
-              load={stats.load}
-              onSave={handleSaveListing}
-              saving={saving}
-            />
-          )}
-        </div>
+        {content}
 
         {loading && (
           <p className="flex items-center justify-center gap-2 pb-4 text-xs font-medium text-muted-foreground">

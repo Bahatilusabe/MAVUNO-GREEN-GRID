@@ -1,27 +1,55 @@
+import { useMemo } from "react";
 import { TrendingUp } from "lucide-react";
 import { HarvestChart } from "../../../shared/charts";
+import Card from "../../../shared/kit/Card";
+import Badge from "../../../shared/kit/Badge";
+import AreaTrend from "../../../shared/viz/AreaTrend";
+import BarCompare from "../../../shared/viz/BarCompare";
 import { OUTLOOK } from "./data";
 
-export default function HarvestOutlook() {
-  return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-gray-100 bg-gradient-to-r from-green-50/50 to-transparent flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-lg font-bold text-green-900">
-          <TrendingUp className="text-green-600" aria-hidden="true" size={20} /> 
-          Harvest Outlook
-        </h3>
-        <span className="text-xs font-semibold bg-green-100 text-green-800 px-2.5 py-1 rounded-full">
-          Seasonal Trend
-        </span>
-      </div>
+const pad = (n) => String(n).padStart(2, "0");
 
-      {/* Chart Body */}
-      <div className="p-4 sm:p-5 flex-grow flex items-center justify-center">
-        <div className="w-full">
+// Group expected kilograms by the Monday of each harvest week (local dates, no UTC shift)
+function byWeek(harvests) {
+  const buckets = new Map();
+  for (const h of harvests) {
+    if (!h.expectedHarvest) continue;
+    const d = new Date(`${h.expectedHarvest}T00:00:00`);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const label = d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+    const bucket = buckets.get(key) ?? { key, label, kg: 0 };
+    bucket.kg += Number(h.expectedKg) || 0;
+    buckets.set(key, bucket);
+  }
+  return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+const kg = (v) => `${Number(v).toLocaleString("en-KE")} kg`;
+const axis = (v) => (v >= 1000 ? `${+(v / 1000).toFixed(1)}t` : v);
+
+export default function HarvestOutlook({ harvests }) {
+  const weeks = useMemo(() => (Array.isArray(harvests) ? byWeek(harvests) : []), [harvests]);
+  const live = weeks.length > 0;
+  const series = [{ key: "kg", label: "Expected harvest" }];
+
+  return (
+    <Card
+      title="Harvest Outlook"
+      icon={TrendingUp}
+      action={<Badge tone="green">{live ? "By week" : "Seasonal trend"}</Badge>}
+    >
+      {live && weeks.length >= 3 && (
+        <AreaTrend data={weeks} series={series} height={220} format={kg} axisFormat={axis} />
+      )}
+      {live && weeks.length < 3 && (
+        <BarCompare data={weeks} series={series} height={220} format={kg} axisFormat={axis} />
+      )}
+      {!live && (
+        <div className="w-full min-w-0" style={{ height: 210 }}>
           <HarvestChart {...OUTLOOK} height={210} />
         </div>
-      </div>
-    </section>
+      )}
+    </Card>
   );
 }

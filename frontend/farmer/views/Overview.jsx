@@ -95,7 +95,7 @@ export default function Overview({ farms, go, onOpenFarm }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <HarvestOutlook />
+        <HarvestOutlook harvests={data?.harvests} />
         <GridActivity items={activity} />
         <EnvImpact />
       </div>
