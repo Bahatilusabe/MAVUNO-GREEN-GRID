@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Polyline, Popup, Tooltip, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { COLORS } from "./chartColors";
 
 const AREA = { north: -0.35, south: -0.75, west: 37.1, east: 37.6 }; // Kirinyaga, used for legacy {x, y} pins
-const DANGER = "var(--color-red)";
-const ROUTE_COLOR = "#2563eb";
-const ALT_COLOR = "#94a3b8";
+// Leaflet writes these into SVG attributes, which cannot resolve var(),
+// so they are read from the active palette at render time instead.
+const danger = () => COLORS.red;
+const routeColor = () => COLORS.blue;
+const altColor = () => COLORS.ink;
 
 const toLatLng = (p) =>
   p.lat != null
@@ -265,7 +268,7 @@ export default function MapView({
               <Polyline
                 key={`alt-${i}`}
                 positions={r.coordinates}
-                pathOptions={{ color: ALT_COLOR, weight: 5, opacity: 0.85 }}
+                pathOptions={{ color: altColor(), weight: 5, opacity: 0.85 }}
                 eventHandlers={{ click: () => setSelectedRoute(i) }}
               >
                 <Tooltip sticky>Alternative: {fmtTime(r.durationMinutes)}, {r.distanceKm} km</Tooltip>
@@ -278,7 +281,7 @@ export default function MapView({
             <Polyline
               positions={active.coordinates}
               pathOptions={{
-                color: active.approximate ? "#dc2626" : ROUTE_COLOR,
+                color: active.approximate ? danger() : routeColor(),
                 weight: 6,
                 dashArray: active.approximate ? "8 10" : undefined,
               }}
@@ -297,8 +300,8 @@ export default function MapView({
             </Popup>
           </Marker>
         )}
-        {risk && pins.map((p, i) => p.color === DANGER && (
-          <Circle key={`r${i}`} center={points[i]} radius={900} pathOptions={{ color: DANGER, fillColor: DANGER, fillOpacity: 0.25, weight: 1 }} />
+        {risk && pins.map((p, i) => p.color === danger() && (
+          <Circle key={`r${i}`} center={points[i]} radius={900} pathOptions={{ color: danger(), fillColor: danger(), fillOpacity: 0.25, weight: 1 }} />
         ))}
         {pins.map((p, i) => (
           <Marker key={i} position={points[i]} icon={pinIcon(p.color)}>

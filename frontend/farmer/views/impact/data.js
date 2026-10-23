@@ -20,12 +20,19 @@ export const SERIES = [
 
 import { COLORS } from "../../../shared/chartColors";
 
-export const SOURCES = [
+/**
+ * The impact breakdown.
+ *
+ * A function, not a constant: the colours are read at call time so the
+ * breakdown follows the active theme instead of freezing the palette that
+ * happened to be active when this module was first imported.
+ */
+export const impactSources = () => [
   { name: "Avoided Spoilage", value: 32, color: COLORS.blue },
   { name: "Optimized Transport", value: 24, color: COLORS.green },
   { name: "Storage", value: 18, color: COLORS.amber },
   { name: "Processing", value: 15, color: COLORS.purple },
-  { name: "Recovery", value: 11, color: "var(--color-indigo)" },
+  { name: "Recovery", value: 11, color: COLORS.indigo },
 ];
 
 export const FLOW = { produce: "7.2 t saved", market: "4.3 t sold", processing: "1.8 t processed", recovery: "1.1 t compost / biogas" };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hand } from "lucide-react";
+import { Compass, Hand } from "lucide-react";
 import { toast } from "sonner";
 import { INITIAL_FARMS } from "../shared/data";
 import { FARMER_NAV, FARMER_USER } from "../shared/nav";
@@ -24,6 +24,7 @@ import Storage from "./views/Storage";
 import Transport from "./views/Transport";
 import Weather from "./views/Weather";
 import Messages from "./views/Messages";
+import Chat from "./views/Chat";
 import AddCropForm from "./views/AddCropForm";
 import { NOTIFICATIONS } from "./views/messages/data";
 
@@ -32,6 +33,7 @@ const SUBTITLES = {
   transport: "Move your produce efficiently.",
   impact: "See what MAVUNO Green Grid is helping you save.",
   messages: "Alerts, buyer updates and system notices in one place.",
+  chat: "Talk to buyers, agree a price and turn it into a match request.",
   weather: "Forecasts, weather statistics and field predictions for your farms.",
 };
 
@@ -129,7 +131,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
   let content;
   if (waiting) {
     content = (
-      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm" role="status">
+      <div className="surface p-12 text-center text-muted-foreground" role="status">
         Loading your farms…
       </div>
     );
@@ -165,6 +167,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
       case "opportunities": content = <Opportunities farm={farm} />; break;
       case "recs": content = <Recommendations />; break;
       case "market": content = <Market />; break;
+      case "chat": content = <Chat farm={farm} crops={crops} />; break;
       case "impact": content = <Impact />; break;
       case "settings": content = <Profile />; break;
       case "storage": content = <Storage farms={farms} />; break;
@@ -172,8 +175,14 @@ export default function FarmerPortal({ initialView = "overview" }) {
       case "weather": content = <Weather farm={farm} />; break;
       case "messages": content = <Messages items={notes} setItems={setNotes} go={go} />; break;
       default: content = (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500 shadow-sm">
-          {navTitle} is coming soon.
+        <div className="surface flex flex-col items-center justify-center gap-3 p-12 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700" aria-hidden="true">
+            <Compass size={22} />
+          </span>
+          <strong className="text-sm font-bold text-foreground">That view is not available</strong>
+          <p className="max-w-sm text-xs font-medium text-muted-foreground">
+            {navTitle} does not have a page yet. Use the sidebar to pick a section.
+          </p>
         </div>
       );
     }
@@ -204,7 +213,7 @@ export default function FarmerPortal({ initialView = "overview" }) {
             value={county}
             onChange={(e) => setCounty(e.target.value)}
             aria-label="County"
-            className="bg-gray-50 border border-gray-200 text-gray-800 text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 outline-none focus:border-green-600 transition-all cursor-pointer shadow-2xs"
+            className="border border-border bg-muted text-foreground text-xs sm:text-sm font-semibold rounded-xl px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-ring/30 transition-all cursor-pointer shadow-xs"
           >
             {COUNTIES.map((c) => <option key={c} value={c}>{c} County</option>)}
           </select>

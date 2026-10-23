@@ -8,10 +8,10 @@ function Ring({ pct }) {
   const r = 18, c = 2 * Math.PI * r;
   return (
     <svg viewBox="0 0 44 44" width="52" height="52" role="img" aria-label={`${pct}% confidence`}>
-      <circle cx="22" cy="22" r={r} fill="none" stroke="var(--g100)" strokeWidth="4" />
+      <circle cx="22" cy="22" r={r} fill="none" stroke={COLORS.track} strokeWidth="4" />
       <circle cx="22" cy="22" r={r} fill="none" stroke={COLORS.green} strokeWidth="4" strokeLinecap="round"
         strokeDasharray={`${(pct / 100) * c} ${c}`} transform="rotate(-90 22 22)" />
-      <text x="22" y="26" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--g900)">{pct}%</text>
+      <text x="22" y="26" textAnchor="middle" fontSize="11" fontWeight="700" fill={COLORS.ink}>{pct}%</text>
     </svg>
   );
 }

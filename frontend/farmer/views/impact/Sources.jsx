@@ -1,9 +1,11 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { PieChart as PieChartIcon } from "lucide-react";
 import { TIP } from "../../../shared/chartColors";
-import { SOURCES, TOTAL_IMPACT } from "./data";
+import { impactSources, TOTAL_IMPACT } from "./data";
 
 export default function Sources() {
+  const SOURCES = impactSources();
+
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
       {/* Header */}
