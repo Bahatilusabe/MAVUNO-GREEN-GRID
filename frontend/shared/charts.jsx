@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   RadialBarChart, RadialBar, ComposedChart,
 } from "recharts";
-import { COLORS, PALETTE, SERIES_COLORS, GRID, AXIS, riskColor } from "./chartColors";
+import { COLORS, PALETTE, SERIES_COLORS, GRID, AXIS, CURSOR, riskColor } from "./chartColors";
 import { cn } from "../src/lib/utils";
 
 /* -------------------------------------------------------------------------- */
@@ -210,7 +210,7 @@ export function BarsChart({
         <YAxis tickFormatter={format} {...axisProps} />
         <Tooltip
           content={<ChartTooltip valueFormatter={(v) => `${format(v)}${unit}`} />}
-          cursor={{ fill: "var(--g50)" }}
+          cursor={{ fill: CURSOR }}
         />
         {showLegend && <Legend {...legendProps} />}
         <Bar
@@ -243,7 +243,7 @@ export function StackedBars({
         <YAxis tickFormatter={format} {...axisProps} />
         <Tooltip
           content={<ChartTooltip valueFormatter={(v) => `${format(v)}${unit}`} />}
-          cursor={{ fill: "var(--g50)" }}
+          cursor={{ fill: CURSOR }}
         />
         <Legend {...legendProps} />
         {series.map((s) => (
@@ -272,7 +272,7 @@ export function HBars({ data, nameKey, valueKey, height = 220, unit = "%", max =
         <YAxis type="category" dataKey={nameKey} width={82} {...axisProps} />
         <Tooltip
           content={<ChartTooltip valueFormatter={(v) => `${v}${unit}`} />}
-          cursor={{ fill: "var(--g50)" }}
+          cursor={{ fill: CURSOR }}
         />
         <Bar dataKey={valueKey} radius={[0, 6, 6, 0]} barSize={14} {...ANIM}>
           {data.map((d) => (
@@ -361,7 +361,7 @@ export function ComboChart({
         <XAxis dataKey={xKey} {...axisProps} />
         <YAxis yAxisId="left" {...axisProps} />
         <YAxis yAxisId="right" orientation="right" {...axisProps} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--g50)" }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: CURSOR }} />
         <Legend {...legendProps} />
         <Bar yAxisId="left" dataKey={barKey} name="Volume (t)" fill={barColor} radius={[6, 6, 0, 0]} maxBarSize={46} {...ANIM} />
         <Line yAxisId="right" type="monotone" dataKey={lineKey} name="Price (KES/kg)" stroke={lineColor} strokeWidth={2.5} dot={{ r: 3, strokeWidth: 0 }} {...ANIM} />
@@ -391,7 +391,7 @@ export function Gauge({ value = 0, label, caption, height = 200, color }) {
             dataKey="value"
             cornerRadius={12}
             fill={tone}
-            background={{ fill: "var(--muted)" }}
+            background={{ fill: GRID }}
             {...ANIM}
           />
         </RadialBarChart>

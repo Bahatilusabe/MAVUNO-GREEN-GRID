@@ -1,43 +1,36 @@
+import { useMemo } from "react";
 import { useTheme } from "../../src/theme/useTheme";
 
-const LIGHT = {
-  text: "#5b6b62",
-  grid: "#e3ebe5",
-  cursor: "rgba(21,128,61,0.08)",
-  tooltipBg: "#ffffff",
-  tooltipBorder: "#dde6df",
-  tooltipText: "#0f1f17",
-  series: [
-    "#15803d", // Forest Green
-    "#0284c7", // Deep Sky Blue
-    "#d97706", // Amber/Orange
-    "#7c3aed", // Violet
-    "#dc2626", // Crimson Red
-    "#0d9488", // Teal
-    "#ea580c", // Burnt Orange
-    "#4f46e5", // Indigo
-  ],
-};
-
-const DARK = {
-  text: "#93a79a",
-  grid: "#1f2f26",
-  cursor: "rgba(63,207,122,0.10)",
-  tooltipBg: "#131f18",
-  tooltipBorder: "#2a3d32",
-  tooltipText: "#e8f1ea",
-  series: [
-    "#4ade80", // Neon Green
-    "#38bdf8", // Sky Blue
-    "#fbbf24", // Golden Yellow
-    "#a78bfa", // Soft Purple
-    "#f87171", // Pastel Red
-    "#2dd4bf", // Aqua
-    "#fb923c", // Soft Orange
-    "#818cf8", // Periwinkle
-  ],
-};
-
+/**
+ * The chart chrome for the current theme.
+ *
+ * Every value is a concrete colour, because recharts writes them into SVG
+ * presentation attributes and an attribute cannot resolve `var()`. The hues
+ * follow the active palette, so a chart is as colourful as the theme it is
+ * drawn in.
+ */
 export function useChartTheme() {
-  return useTheme().resolved === "dark" ? DARK : LIGHT;
+  const { chart, tokens } = useTheme();
+
+  return useMemo(
+    () => ({
+      text: tokens["muted-foreground"] ?? "#5a6b61",
+      grid: tokens.border ?? "#dbe5dd",
+      cursor: tokens["chart-cursor"] ?? "rgba(21, 128, 61, 0.08)",
+      tooltipBg: tokens.popover ?? "#ffffff",
+      tooltipBorder: tokens.border ?? "#dbe5dd",
+      tooltipText: tokens.foreground ?? "#0d1f16",
+      series: [
+        chart.green,
+        chart.blue,
+        chart.amber,
+        chart.purple,
+        chart.red,
+        chart.teal,
+        chart.orange,
+        chart.indigo,
+      ],
+    }),
+    [chart, tokens],
+  );
 }

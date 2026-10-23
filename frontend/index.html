@@ -5,17 +5,49 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MAVUNO Green Grid</title>
-    <meta name="theme-color" content="#f4f7f4" />
+    <meta
+      name="description"
+      content="MAVUNO Green Grid connects Kenyan farms to buyers, cold stores, processors and transporters on one shared network — sensing every plot, forecasting every harvest, and matching supply to demand before produce is loaded."
+    />
+    <meta name="theme-color" content="#f1f7f1" />
     <script>
+      /*
+       * Applies the saved theme before React mounts, so the first paint is
+       * already in the right palette rather than flashing the default.
+       *
+       * The full token set is applied by the theme provider on mount; this
+       * script only needs to cover the page background and the colour
+       * scheme. `src/theme/palettes.js` is the source of truth for the
+       * palette values — keep the two in step.
+       */
       (function () {
         try {
-          var t = localStorage.getItem("mavuno_theme");
+          var root = document.documentElement;
+          var mode = localStorage.getItem("mavuno_theme");
+          var palette = localStorage.getItem("mavuno_palette");
           var dark =
-            t === "dark" ||
-            ((t === null || t === "system") && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (dark) document.documentElement.classList.add("dark");
-          document.documentElement.style.colorScheme = dark ? "dark" : "light";
-        } catch (e) {}
+            mode === "dark" ||
+            ((mode === null || mode === "system") &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+          var BACKGROUNDS = {
+            mavuno: { light: "#f1f7f1", dark: "#07110b" },
+            sunset: { light: "#fdf6ef", dark: "#140d08" },
+            ocean: { light: "#eff5fb", dark: "#060f1a" },
+            plum: { light: "#f8f4fc", dark: "#0d0818" },
+            cacao: { light: "#faf6f1", dark: "#120c07" },
+          };
+
+          if (dark) root.classList.add("dark");
+          root.style.colorScheme = dark ? "dark" : "light";
+
+          var chosen = BACKGROUNDS[palette] || BACKGROUNDS.mavuno;
+          root.style.setProperty("--background", dark ? chosen.dark : chosen.light);
+          root.dataset.theme = palette || "mavuno";
+          root.dataset.mode = dark ? "dark" : "light";
+        } catch (e) {
+          /* private mode: the provider applies the theme once it mounts */
+        }
       })();
     </script>
   </head>
@@ -23,4 +55,4 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
-</html>>
+</html>
