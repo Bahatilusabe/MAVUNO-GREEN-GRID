@@ -4,12 +4,12 @@ import { requireAuth } from "../../middleware/auth.js";
 import { HttpError } from "../../utils/errors.js";
 import { listDeals, getDeal, postMessage, makeOffer, respondToOffer, advanceDeal } from "./service.js";
 
+const router = Router();
+router.use(requireAuth);
+
 router.post("/:id/advance", async (req, res) => {
   res.json(await advanceDeal(req.user.id, req.params.id));
 });
-
-const router = Router();
-router.use(requireAuth);
 
 const messageSchema = z.object({ body: z.string().trim().min(1).max(2000) });
 const offerSchema = z.object({ price_per_kg: z.number().positive().max(100_000) });
