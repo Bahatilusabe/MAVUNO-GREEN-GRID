@@ -1,6 +1,7 @@
 import {
   Earth,
   CloudSun,
+  Handshake,
   LayoutDashboard,
   Leaf,
   Link2,
@@ -18,6 +19,7 @@ export const FARMER_NAV = [
   ["farms", "My Farms", Tractor],
   ["crops", "Crops & Harvests", Leaf],
   ["opportunities", "Green Grid Opportunities", Link2],
+  ["deals", "Deal Room (Live Demo)", Handshake], // Added for the hackathon stage demo
   ["recs", "AI Recommendations", Sparkles],
   ["market", "Market & Buyers", ShoppingCart],
   ["storage", "Storage", Warehouse],

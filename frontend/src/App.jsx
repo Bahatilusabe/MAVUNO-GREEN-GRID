@@ -7,31 +7,56 @@ const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
 const AdminDashboard = lazy(() => import("../admin/AdminDashboard"));
 const PartnerPortal = lazy(() => import("../partner/PartnerPortal"));
+const JudgeModeDemo = lazy(() => import("../shared/JudgeModeDemo"));
 
-const FARMER_VIEWS = ["overview", "farms", "crops", "opportunities", "recs", "market", "storage", "transport", "weather", "impact", "messages", "settings"];
+const FARMER_VIEWS = [
+  "overview",
+  "farms",
+  "crops",
+  "opportunities",
+  "deals",
+  "recs",
+  "market",
+  "storage",
+  "transport",
+  "weather",
+  "impact",
+  "messages",
+  "settings"
+];
 
 const LINKS = [
-  ["/", "Home"],
-  ["/dashboard", "Farmer dashboard"],
-  ["/farmer", "Farmer portal"],
-  ["/admin", "Admin"],
-  ["/partner", "Partner"],
+  ["#/", "Home"],
+  ["#/judge", "Live Judge Demo"],
+  ["#/dashboard", "Farmer dashboard"],
+  ["#/farmer", "Farmer portal"],
+  ["#/admin", "Admin"],
+  ["#/partner", "Partner"],
 ];
 
 const subscribe = (cb) => {
   window.addEventListener("hashchange", cb);
   return () => window.removeEventListener("hashchange", cb);
 };
-const getPath = () => window.location.hash.replace(/^#/, "").replace(/\/+$/, "") || "/";
-const navigate = (to) => { window.location.hash = to; };
+
+const getPath = () => {
+  const hash = window.location.hash || "#/";
+  return hash.replace(/^#\/?/, "").trim(); // returns "" for root, "judge" for #/judge
+};
+
+const navigate = (to) => {
+  window.location.hash = to.startsWith("#") ? to : `#${to}`;
+};
 
 function Home() {
   const cards = [
-    [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "/dashboard"],
-    [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "/farmer"],
-    [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "/admin"],
-    [Truck, "Partner portal", "Requests, orders, capacity and pricing", "/partner"],
+    [Handshake, "Judge Demo Mode", "Split-screen live negotiation & fair-price AI advisor", "#/judge"],
+    [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "#/dashboard"],
+    [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "#/farmer"],
+    [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "#/admin"],
+    [Truck, "Partner portal", "Requests, orders, capacity and pricing", "#/partner"],
   ];
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-8 font-sans">
       <div className="max-w-4xl w-full space-y-8 text-center">
@@ -44,31 +69,38 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          {cards.map(([Icon, title, text, to]) => (
-            <a 
-              key={to} 
-              href={`#${to}`} 
-              className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md hover:border-green-300 transition-all group flex flex-col justify-between space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="p-3 bg-green-50 text-green-700 rounded-xl group-hover:bg-green-700 group-hover:text-white transition-colors">
-                  <Icon aria-hidden="true" size={24} />
+          {cards.map(([Icon, title, text, to]) => {
+            const isJudge = to === "#/judge";
+            return (
+              <a 
+                key={to} 
+                href={to} 
+                className={`bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between space-y-4 ${
+                  isJudge ? "border-green-500 bg-green-50 sm:col-span-2" : "border-gray-200 hover:border-green-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`p-3 rounded-xl transition-colors ${
+                    isJudge ? "bg-green-700 text-white" : "bg-green-50 text-green-700 group-hover:bg-green-700 group-hover:text-white"
+                  }`}>
+                    <Icon aria-hidden="true" size={24} />
+                  </div>
+                  <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
                 </div>
-                <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <div className="space-y-1">
-                <strong className="text-base font-bold text-gray-900 group-hover:text-green-800 transition-colors block">{title}</strong>
-                <small className="text-xs text-gray-500 font-medium block leading-relaxed">{text}</small>
-              </div>
-            </a>
-          ))}
+                <div className="space-y-1">
+                  <strong className="text-base font-bold text-gray-900 group-hover:text-green-800 transition-colors block">{title}</strong>
+                  <small className="text-xs text-gray-500 font-medium block leading-relaxed">{text}</small>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </div>
     </main>
   );
 }
 
-function Switcher({ path }) {
+function Switcher({ activeKey }) {
   return (
     <details className="fixed bottom-4 left-4 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-2 text-xs font-semibold group">
       <summary className="cursor-pointer px-3 py-1.5 text-gray-700 hover:text-green-800 flex items-center gap-2 list-none">
@@ -76,11 +108,12 @@ function Switcher({ path }) {
       </summary>
       <nav aria-label="Switch view" className="pt-2 mt-2 border-t border-gray-100 flex flex-col space-y-1">
         {LINKS.map(([to, label]) => {
-          const isActive = (to === "/" ? path === "/" : path.startsWith(to));
+          const key = to.replace(/^#\/?/, "");
+          const isActive = key === "" ? activeKey === "" : activeKey.startsWith(key);
           return (
             <a 
               key={to} 
-              href={`#${to}`} 
+              href={to} 
               aria-current={isActive ? "page" : undefined}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 isActive ? "bg-green-700 text-white" : "text-gray-600 hover:bg-gray-100"
@@ -96,12 +129,19 @@ function Switcher({ path }) {
 }
 
 export default function App() {
-  const path = useSyncExternalStore(subscribe, getPath, () => "/");
-  useEffect(() => { window.scrollTo(0, 0); }, [path]);
+  const route = useSyncExternalStore(subscribe, getPath, () => "");
 
-  const [, root, sub] = path.split("/");
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
+
+  const [root, sub] = route.split("/");
+
   let page;
   switch (root) {
+    case "judge":
+      page = <JudgeModeDemo />;
+      break;
     case "dashboard":
       page = <Dashboard userName="Samuel" onNavigate={(v) => navigate(`/farmer/${v}`)} />;
       break;
@@ -110,16 +150,22 @@ export default function App() {
       page = <FarmerPortal key={view} initialView={view} />;
       break;
     }
-    case "admin": page = <AdminDashboard />; break;
-    case "partner": page = <PartnerPortal />; break;
-    default: page = <Home />;
+    case "admin":
+      page = <AdminDashboard />;
+      break;
+    case "partner":
+      page = <PartnerPortal />;
+      break;
+    default:
+      page = <Home />;
+      break;
   }
 
   return (
     <>
       <Suspense fallback={<Loader className="system-loader--page" />}>{page}</Suspense>
       <Toaster position="bottom-right" richColors closeButton />
-      {path !== "/" && <Switcher path={path} />}
+      {root !== "" && <Switcher activeKey={root} />}
     </>
   );
 }
