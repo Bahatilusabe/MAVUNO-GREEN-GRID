@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
-import { Handshake, Sprout, Tractor, Truck, ChevronRight } from "lucide-react";
 import { Toaster } from "sonner";
 import Loader from "../shared/Loader";
+import { navigate } from "../shared/nav";
+import { useTheme } from "./theme/useTheme";
 
+const Landing = lazy(() => import("../landing/Landing"));
 const Dashboard = lazy(() => import("../dashboard/Dashboard"));
 const FarmerPortal = lazy(() => import("../farmer/FarmerPortal"));
 const AdminDashboard = lazy(() => import("../admin/AdminDashboard"));
@@ -49,55 +51,7 @@ const navigate = (to) => {
 };
 
 function Home() {
-  const cards = [
-    [Handshake, "Judge Demo Mode", "Split-screen live negotiation & fair-price AI advisor", "#/judge"],
-    [Sprout, "Farmer dashboard", "Overview of farms, forecasts and alerts", "#/dashboard"],
-    [Tractor, "Farmer portal", "Farms, crops, market, AI recommendations", "#/farmer"],
-    [Handshake, "Admin dashboard", "Users, partners, alerts, system health", "#/admin"],
-    [Truck, "Partner portal", "Requests, orders, capacity and pricing", "#/partner"],
-  ];
-
-  return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 sm:p-8 font-sans">
-      <div className="max-w-4xl w-full space-y-8 text-center">
-        <div className="space-y-3">
-          <div className="inline-flex items-center justify-center p-3 bg-green-100 text-green-700 rounded-2xl shadow-xs">
-            <Sprout aria-hidden="true" size={32} />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">MAVUNO Green Grid</h1>
-          <p className="text-sm sm:text-base text-gray-500 font-medium">Pick a view to open and explore the agricultural platform.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          {cards.map(([Icon, title, text, to]) => {
-            const isJudge = to === "#/judge";
-            return (
-              <a 
-                key={to} 
-                href={to} 
-                className={`bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between space-y-4 ${
-                  isJudge ? "border-green-500 bg-green-50 sm:col-span-2" : "border-gray-200 hover:border-green-300"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`p-3 rounded-xl transition-colors ${
-                    isJudge ? "bg-green-700 text-white" : "bg-green-50 text-green-700 group-hover:bg-green-700 group-hover:text-white"
-                  }`}>
-                    <Icon aria-hidden="true" size={24} />
-                  </div>
-                  <ChevronRight size={18} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
-                </div>
-                <div className="space-y-1">
-                  <strong className="text-base font-bold text-gray-900 group-hover:text-green-800 transition-colors block">{title}</strong>
-                  <small className="text-xs text-gray-500 font-medium block leading-relaxed">{text}</small>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </main>
-  );
+  return <Landing />;
 }
 
 function Switcher({ activeKey }) {
@@ -111,9 +65,9 @@ function Switcher({ activeKey }) {
           const key = to.replace(/^#\/?/, "");
           const isActive = key === "" ? activeKey === "" : activeKey.startsWith(key);
           return (
-            <a 
-              key={to} 
-              href={to} 
+            <a
+              key={to}
+              href={to}
               aria-current={isActive ? "page" : undefined}
               className={`px-3 py-1.5 rounded-lg transition-colors ${
                 isActive ? "bg-green-700 text-white" : "text-gray-600 hover:bg-gray-100"
@@ -129,6 +83,7 @@ function Switcher({ activeKey }) {
 }
 
 export default function App() {
+  const { resolved } = useTheme();
   const route = useSyncExternalStore(subscribe, getPath, () => "");
 
   useEffect(() => {
@@ -143,7 +98,7 @@ export default function App() {
       page = <JudgeModeDemo />;
       break;
     case "dashboard":
-      page = <Dashboard userName="Samuel" onNavigate={(v) => navigate(`/farmer/${v}`)} />;
+      page = <Dashboard path="/dashboard" onNavigate={(v) => navigate(`/farmer/${v}`)} />;
       break;
     case "farmer": {
       const view = FARMER_VIEWS.includes(sub) ? sub : "overview";
@@ -154,7 +109,7 @@ export default function App() {
       page = <AdminDashboard />;
       break;
     case "partner":
-      page = <PartnerPortal />;
+      page = <PartnerPortal path="/partner" />;
       break;
     default:
       page = <Home />;
@@ -164,7 +119,7 @@ export default function App() {
   return (
     <>
       <Suspense fallback={<Loader className="system-loader--page" />}>{page}</Suspense>
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster theme={resolved} position="bottom-right" richColors closeButton />
       {root !== "" && <Switcher activeKey={root} />}
     </>
   );

@@ -1,30 +1,18 @@
-import {
-  LayoutDashboard,
-  Leaf,
-  Link2,
-  MessageCircle,
-  Settings,
-  ShoppingCart,
-  Sparkles,
-  Tractor,
-  Truck,
-  Warehouse,
-  Earth,
-} from "lucide-react";
-
-export const NAV = [
-  ["overview", "Overview", LayoutDashboard],
-  ["farms", "My Farms", Tractor],
-  ["crops", "Crops & Harvests", Leaf],
-  ["opportunities", "Green Grid Opportunities", Link2],
-  ["recs", "AI Recommendations", Sparkles],
-  ["market", "Market & Buyers", ShoppingCart],
-  ["storage", "Storage", Warehouse],
-  ["transport", "Transport", Truck],
-  ["impact", "Impact", Earth],
-  ["messages", "Messages", MessageCircle, true],
-  ["settings", "Settings", Settings],
-];
-
 export const COUNTIES = ["Kirinyaga", "Embu", "Murang'a", "Nyeri"];
-export const riskClass = (r) => `pill pill-${r.toLowerCase()}`;
+
+/** The counties a farmer can filter the portal by, plus the "no filter" entry. */
+export const COUNTY_OPTIONS = ["All counties", ...COUNTIES];
+
+/** Maps a risk level string (Low, Medium, High) to a Tailwind CSS class for badges. */
+export function riskClass(risk) {
+  switch (risk?.toLowerCase()) {
+    case "low":
+      return "bg-green-100 text-green-700";
+    case "medium":
+      return "bg-yellow-100 text-yellow-700";
+    case "high":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+}

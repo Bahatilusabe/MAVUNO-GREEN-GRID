@@ -45,6 +45,8 @@ try {
     ["Kutus Farm", 0.4, "River", "Drip", -0.56, 37.28, ["French Beans", "Pod fill", 2100, "2026-10-24", "medium"]],
   ];
 
+  const cropIds = [];
+
   for (const [name, area, water, irrigation, lat, lng, crop] of farms) {
     const result = await connection.execute(
       `INSERT INTO farms (owner_id, name, county, area_ha, water_source, irrigation, lat, lng)
@@ -58,19 +60,53 @@ try {
     const farmId = result.outBinds.out_id[0];
 
     const [cropName, cropStage, cropKg, cropHarvest, cropRisk] = crop;
-    await connection.execute(
+    const cropResult = await connection.execute(
       `INSERT INTO crops (farm_id, name, stage, expected_kg, expected_harvest, risk)
-       VALUES (:1, :2, :3, :4, TO_DATE(:5, 'YYYY-MM-DD'), :6)`,
-      [farmId, cropName, cropStage, cropKg, cropHarvest, cropRisk]
+       VALUES (:1, :2, :3, :4, TO_DATE(:5, 'YYYY-MM-DD'), :6)
+       RETURNING id INTO :out_id`,
+      [farmId, cropName, cropStage, cropKg, cropHarvest, cropRisk],
+      { out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING } }
     );
+    cropIds.push(cropResult.outBinds.out_id[0]);
   }
 
   // Approximate coordinates for the demo partner. Use the real site coordinates outside a demo.
-  await connection.execute(
+  const partnerResult = await connection.execute(
     `INSERT INTO partners (user_id, name, type, county, lat, lng, price_per_kg, capacity_kg, status)
-     VALUES (:1, 'Kagio Juice Processors', 'processor', 'Kirinyaga', -0.668, 37.317, 20, 2000, 'approved')`,
-    [kagioUser]
+     VALUES (:1, 'Kagio Juice Processors', 'processor', 'Kirinyaga', -0.668, 37.317, 20, 2000, 'approved')
+     RETURNING id INTO :out_id`,
+    [kagioUser],
+    { out_id: { dir: oracledb.BIND_OUT, type: oracledb.STRING } }
   );
+  const partnerId = partnerResult.outBinds.out_id[0];
+
+  // The farmer -> partner request stream, in every state the portal renders.
+  // This is the link that makes the partner inbox, the farmer's market view
+  // and the admin match counters agree.
+  const requests = [
+    [cropIds[0], 900, 20, "2026-10-18", "pending"],
+    [cropIds[0], 600, 20, "2026-10-12", "scheduled"],
+    [cropIds[0], 800, 19, "2026-10-01", "delivered"],
+  ];
+
+  for (const [cropId, kg, price, pickup, status] of requests) {
+    await connection.execute(
+      `INSERT INTO match_requests
+         (farmer_id, partner_id, crop_id, kg, price_per_kg, pickup_date, status, idempotency_key, notes)
+       VALUES (:1, :2, :3, :4, :5, TO_DATE(:6, 'YYYY-MM-DD'), :7, :8, :9)`,
+      [
+        samuel,
+        partnerId,
+        cropId,
+        kg,
+        price,
+        pickup,
+        status,
+        `seed-${cropId}-${kg}-${status}`,
+        "Seeded demo request",
+      ]
+    );
+  }
 
   const notes = [
     ["alert", "risk", "amber", "High surplus risk detected", "Tomatoes, Kiambaina Farm. Act within 72 hours.", "recs", "View plan", true, 2],
@@ -86,6 +122,21 @@ try {
       `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, action_label, unread, created_at)
        VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, SYSTIMESTAMP - NUMTODSINTERVAL(:10, 'HOUR'))`,
       [samuel, kind, icon, tone, title, body, to, label, unread ? 1 : 0, hours]
+    );
+  }
+
+  // The partner's own feed: what the farmer's requests look like from the
+  // other side of the loop.
+  const partnerNotes = [
+    ["message", "deal", "green", "New request from Samuel Kamau", "900 kg of Tomatoes", "market", "View", true, 1],
+    ["system", "shield", "blue", "Listing live", "Kagio Juice Processors is visible to farmers nearby", "market", "View", false, 20],
+  ];
+
+  for (const [kind, icon, tone, title, body, to, label, unread, hours] of partnerNotes) {
+    await connection.execute(
+      `INSERT INTO notifications (user_id, kind, icon, tone, title, body, action_to, action_label, unread, created_at)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, SYSTIMESTAMP - NUMTODSINTERVAL(:10, 'HOUR'))`,
+      [kagioUser, kind, icon, tone, title, body, to, label, unread ? 1 : 0, hours]
     );
   }
 

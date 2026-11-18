@@ -1,61 +1,63 @@
 import { PartyPopper, TriangleAlert } from "lucide-react";
-
-const LEVEL_STYLES = {
-  high: "bg-red-100 text-red-800 border-red-200",
-  medium: "bg-amber-100 text-amber-800 border-amber-200",
-  low: "bg-blue-100 text-blue-800 border-blue-200",
-  default: "bg-gray-100 text-gray-800 border-gray-200",
-};
+import Card, { CardBody, CardHeader, CardTitle, CardSubtitle } from "../../shared/ui/Card";
+import Badge from "../../shared/ui/Badge";
+import Button from "../../shared/ui/Button";
+import EmptyState from "../../shared/ui/EmptyState";
+import { alertTone } from "../../shared/status";
 
 export default function AlertsCard({ alerts, onResolve }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-        <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-          <TriangleAlert aria-hidden="true" size={18} />
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <span
+            className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-brand-50 text-brand-700"
+            aria-hidden="true"
+          >
+            <TriangleAlert size={18} />
+          </span>
+          <div className="min-w-0">
+            <CardTitle>Open alerts</CardTitle>
+            <CardSubtitle>
+              {alerts.length ? `${alerts.length} need review` : "Nothing needs review"}
+            </CardSubtitle>
+          </div>
         </div>
-        <h3 className="text-base font-bold text-gray-900">Alerts</h3>
-      </div>
+      </CardHeader>
 
-      {/* Alerts List */}
-      <div className="space-y-3">
-        {alerts.map((a) => {
-          const levelKey = a.level.toLowerCase();
-          const levelStyle = LEVEL_STYLES[levelKey] || LEVEL_STYLES.default;
-
-          return (
-            <div 
-              key={a.id} 
-              className="bg-gray-50/70 border border-gray-100 p-3.5 rounded-xl flex items-center justify-between gap-4 hover:bg-gray-100/50 transition-colors"
+      <CardBody className="space-y-3">
+        {alerts.length ? (
+          alerts.map((a) => (
+            <div
+              key={a.id}
+              className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-3.5 transition-colors duration-200 hover:bg-muted/70"
             >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border flex-shrink-0 ${levelStyle}`}>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Badge tone={alertTone(a.level)} dot className="flex-none">
                   {a.level}
-                </span>
-                <p className="text-xs sm:text-sm text-gray-800 font-medium truncate">
-                  {a.text}
-                </p>
+                </Badge>
+                <p className="truncate text-xs font-medium text-foreground/90 sm:text-sm">{a.text}</p>
               </div>
 
-              <button
-                className="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded-lg transition-colors flex-shrink-0 shadow-2xs cursor-pointer"
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-none"
                 onClick={() => onResolve(a.id)}
               >
                 Resolve
-              </button>
+              </Button>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Empty State */}
-      {!alerts.length && (
-        <div className="py-8 text-center text-gray-500 text-sm flex items-center justify-center gap-2 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          <PartyPopper aria-hidden="true" size={18} className="text-green-600" />
-          <span className="font-medium">No open alerts</span>
-        </div>
-      )}
-    </section>
+          ))
+        ) : (
+          <EmptyState
+            compact
+            icon={PartyPopper}
+            title="No open alerts"
+            text="Every alert on the platform has been reviewed. New ones appear here as they are raised."
+          />
+        )}
+      </CardBody>
+    </Card>
   );
 }

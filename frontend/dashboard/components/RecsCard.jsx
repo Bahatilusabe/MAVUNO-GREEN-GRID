@@ -1,13 +1,8 @@
-import {
-  CircleAlert,
-  PartyPopper,
-  Sparkles,
-  Sprout,
-  Store,
-  Warehouse,
-  X,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight, CircleAlert, PartyPopper, Sparkles, Sprout, Store, Warehouse, X } from "lucide-react";
+import Card, { CardBody, CardHeader, CardTitle, CardSubtitle } from "../../shared/ui/Card";
+import Badge from "../../shared/ui/Badge";
+import Button from "../../shared/ui/Button";
+import { recommendationTone } from "../../shared/status";
 
 const RECOMMENDATION_ICONS = {
   Harvest: Sprout,
@@ -15,83 +10,110 @@ const RECOMMENDATION_ICONS = {
   Storage: Warehouse,
 };
 
-const TONE_STYLES = {
-  red: "bg-red-50/60 border-red-200 text-red-900",
-  amber: "bg-amber-50/60 border-amber-200 text-amber-900",
-  green: "bg-green-50/60 border-green-200 text-green-900",
-  blue: "bg-blue-50/60 border-blue-200 text-blue-900",
-  default: "bg-gray-50 border-gray-200 text-gray-900",
+const TONE_CHIP = {
+  danger: "bg-red-50 text-red-600",
+  warning: "bg-amber-50 text-amber-600",
+  info: "bg-blue-50 text-blue-600",
+  success: "bg-brand-50 text-brand-700",
+  neutral: "bg-muted text-muted-foreground",
 };
 
-const ICON_TONES = {
-  red: "bg-red-100 text-red-600",
-  amber: "bg-amber-100 text-amber-600",
-  green: "bg-green-100 text-green-600",
-  blue: "bg-blue-100 text-blue-600",
-  default: "bg-gray-100 text-gray-600",
+const TONE_EDGE = {
+  danger: "border-red-200 bg-red-50/50",
+  warning: "border-amber-200 bg-amber-50/50",
+  info: "border-blue-200 bg-blue-50/50",
+  success: "border-brand-200 bg-brand-50/50",
+  neutral: "border-border bg-muted/40",
 };
 
-export default function RecsCard({ recs, onDismiss, onNavigate }) {
+/**
+ * The AI recommendations.
+ *
+ * The tone map used to be keyed `red | amber | green | blue` while the data
+ * carries `danger | info`, so every recommendation fell through to the grey
+ * default. The shared `recommendationTone` understands both vocabularies.
+ */
+export default function RecsCard({ recs = [], onDismiss, onNavigate }) {
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-        <h3 className="flex items-center gap-2 text-base font-bold text-gray-900">
-          <Sparkles aria-hidden="true" size={18} className="text-green-600" /> AI Recommendations
-        </h3>
-        <button 
-          className="text-xs font-semibold text-green-700 hover:text-green-800 transition-colors flex items-center gap-1" 
-          onClick={() => onNavigate("recs")}
-        >
-          View all <ArrowRight size={14} />
-        </button>
-      </div>
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <span
+            className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-brand-50 text-brand-700"
+            aria-hidden="true"
+          >
+            <Sparkles size={18} />
+          </span>
+          <div className="min-w-0">
+            <CardTitle>AI recommendations</CardTitle>
+            <CardSubtitle>What the grid suggests you do next</CardSubtitle>
+          </div>
+        </div>
 
-      {/* Recommendations List */}
-      <div className="space-y-3">
+        <Button size="sm" variant="ghost" iconRight={ArrowRight} onClick={() => onNavigate("recs")}>
+          View all
+        </Button>
+      </CardHeader>
+
+      <CardBody className="space-y-2.5">
+        {recs.length === 0 && (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-muted/40 px-6 py-10 text-center">
+            <PartyPopper size={20} className="text-brand-600" aria-hidden="true" />
+            <span className="text-sm font-semibold text-foreground">You&apos;re all caught up</span>
+            <p className="text-xs font-medium text-muted-foreground">
+              New recommendations appear as the grid picks up on your farms.
+            </p>
+          </div>
+        )}
+
         {recs.map((r) => {
-          const Icon = RECOMMENDATION_ICONS[r.kind] || CircleAlert;
-          const toneClass = TONE_STYLES[r.tone] || TONE_STYLES.default;
-          const iconToneClass = ICON_TONES[r.tone] || ICON_TONES.default;
+          const Icon = RECOMMENDATION_ICONS[r.kind] ?? CircleAlert;
+          const tone = recommendationTone(r.tone);
+          const confidence = Number(r.conf);
 
           return (
-            <div 
-              key={r.id} 
-              className={`p-4 rounded-xl border flex items-start gap-3.5 relative transition-all ${toneClass}`}
+            <div
+              key={r.id}
+              className={`group relative flex items-start gap-3 rounded-xl border p-3.5 transition-[border-color,box-shadow] duration-200 hover:shadow-card ${
+                TONE_EDGE[tone] ?? TONE_EDGE.neutral
+              }`}
             >
-              <div className={`p-2.5 rounded-xl flex-shrink-0 mt-0.5 shadow-2xs ${iconToneClass}`}>
-                <Icon aria-hidden="true" size={18} />
-              </div>
+              <span
+                className={`mt-0.5 grid h-9 w-9 flex-none place-items-center rounded-xl ${
+                  TONE_CHIP[tone] ?? TONE_CHIP.neutral
+                }`}
+                aria-hidden="true"
+              >
+                <Icon size={18} />
+              </span>
 
               <div className="min-w-0 flex-1 space-y-1 pr-6">
-                <strong className="block text-sm font-bold text-gray-900 leading-snug">{r.title}</strong>
-                <p className="text-xs text-gray-600 leading-relaxed">{r.text}</p>
-                
-                <div className="pt-1">
-                  <span className="inline-block px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-white/80 border border-gray-200 text-gray-700 shadow-2xs">
-                    {r.conf}% confidence
-                  </span>
-                </div>
+                <strong className="block text-sm font-bold leading-snug text-foreground">
+                  {r.title}
+                </strong>
+                <p className="text-xs leading-relaxed text-foreground/75">{r.text}</p>
+
+                {Number.isFinite(confidence) && (
+                  <div className="pt-0.5">
+                    <Badge tone={tone === "neutral" ? "neutral" : tone}>
+                      {Math.round(confidence)}% confidence
+                    </Badge>
+                  </div>
+                )}
               </div>
 
               <button
-                className="absolute top-3.5 right-3.5 p-1 text-gray-400 hover:text-gray-700 hover:bg-black/5 rounded-lg transition-colors"
+                type="button"
+                className="absolute right-2.5 top-2.5 grid h-6 w-6 place-items-center rounded-lg text-muted-foreground opacity-0 transition-opacity duration-150 hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
                 aria-label={`Dismiss ${r.title}`}
                 onClick={() => onDismiss(r.id)}
               >
-                <X aria-hidden="true" size={16} />
+                <X size={14} aria-hidden="true" />
               </button>
             </div>
           );
         })}
-      </div>
-
-      {!recs.length && (
-        <div className="py-8 text-center text-gray-500 text-sm flex items-center justify-center gap-2 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          <PartyPopper aria-hidden="true" size={18} className="text-green-600" /> 
-          <span className="font-medium">You're all caught up</span>
-        </div>
-      )}
-    </section>
+      </CardBody>
+    </Card>
   );
 }

@@ -10,7 +10,12 @@ const DEMAND_BADGE = {
   Low: "bg-gray-100 text-gray-700 border-gray-200",
 };
 
-const SERIES = [
+/**
+ * Read at call time, not at import time, so the series colours follow the
+ * active theme instead of freezing the palette of whichever theme happened
+ * to be active when this module was first loaded.
+ */
+const priceSeries = () => [
   { key: "nairobi", name: "Nairobi Fresh Markets", color: COLORS.green },
   { key: "kagio", name: "Kagio Processors", color: COLORS.blue },
   { key: "nakuru", name: "Nakuru Market", color: COLORS.amber },
@@ -57,7 +62,7 @@ export default function Market() {
             </span>
           </div>
           <div className="pt-2">
-            <TrendLine data={PRICE_TREND} xKey="week" series={SERIES} />
+            <TrendLine data={PRICE_TREND} xKey="week" series={priceSeries()} />
           </div>
         </div>
       ) : (

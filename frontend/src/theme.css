@@ -1,0 +1,10 @@
+/* Theme styles for MAVUNO Green Grid */
+:root {
+  --theme-transition-duration: 0.25s;
+}
+
+.theme-transition {
+  transition: background-color var(--theme-transition-duration) ease,
+              border-color var(--theme-transition-duration) ease,
+              color var(--theme-transition-duration) ease !important;
+}
