@@ -14,8 +14,7 @@ export default function ListingTab({ listing, load, onSave, saving }) {
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
 
-<<<<<<< HEAD
-=======
+
   // Keep the form in step with the server when the listing is reloaded.
   useEffect(() => {
     setDraft({
@@ -24,7 +23,7 @@ export default function ListingTab({ listing, load, onSave, saving }) {
     });
   }, [listing.price, listing.capacity]);
 
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
   const price = Number(draft.price);
   const cap = Number(draft.capacity);
 
@@ -36,11 +35,11 @@ export default function ListingTab({ listing, load, onSave, saving }) {
         ? `Capacity can't go below current load (${fmt(load)} kg).`
         : "";
 
-<<<<<<< HEAD
+
   const edit = (k) => (e) => {
     setServerError("");
     setDraft({ ...draft, [k]: e.target.value });
-=======
+
   const edit = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   const submit = async () => {
@@ -51,7 +50,7 @@ export default function ListingTab({ listing, load, onSave, saving }) {
     } catch (e) {
       toast.error(e.message || "Could not save the listing");
     }
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
   };
 
   const save = async () => {
@@ -100,7 +99,7 @@ export default function ListingTab({ listing, load, onSave, saving }) {
           inputMode="decimal"
         />
 
-<<<<<<< HEAD
+
         {/* Capacity Input */}
         <label className="block space-y-1.5">
           <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Daily capacity (kg)</span>
@@ -139,7 +138,7 @@ export default function ListingTab({ listing, load, onSave, saving }) {
         </small>
       </div>
     </section>
-=======
+
         <Field
           label="Daily capacity (kg)"
           type="number"
@@ -161,6 +160,6 @@ export default function ListingTab({ listing, load, onSave, saving }) {
         </p>
       </CardBody>
     </Card>
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
   );
 }

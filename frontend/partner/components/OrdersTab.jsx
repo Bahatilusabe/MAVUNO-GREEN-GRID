@@ -1,8 +1,8 @@
-<<<<<<< HEAD
+
 import { useState } from "react";
-=======
+
 import { ShoppingCart, Truck, CheckCircle2 } from "lucide-react";
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
 import { fmt } from "../../shared/utils";
 import Badge from "../../shared/ui/Badge";
 import Button from "../../shared/ui/Button";
@@ -11,7 +11,7 @@ import { DataTable } from "../../shared/ui/Table";
 import EmptyState from "../../shared/ui/EmptyState";
 import { normalizeStatus, statusTone, titleStatus } from "../../shared/status";
 
-<<<<<<< HEAD
+
 const STATUS_STYLES = {
   scheduled: "bg-blue-100 text-blue-800 border-blue-200",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
@@ -103,7 +103,7 @@ export default function OrdersTab({ orders, onAdvance }) {
         {!orders.length && (
           <div className="p-12 text-center text-gray-500 text-sm font-medium bg-white">
             No active orders available.
-=======
+
 /** The fulfilment lifecycle, and the label for the button that advances it. */
 const NEXT_STEP = {
   scheduled: { next: "in transit", label: "Mark in transit", icon: Truck },
@@ -180,7 +180,7 @@ export default function OrdersTab({ orders, onAdvance, busyId }) {
             <p className="mt-0.5 text-xs font-medium text-muted-foreground">
               Accepted requests being fulfilled
             </p>
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
           </div>
         </div>
         <span className="text-xs font-semibold text-muted-foreground">

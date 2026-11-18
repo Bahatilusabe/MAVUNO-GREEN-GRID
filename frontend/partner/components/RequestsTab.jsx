@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { useState } from "react";
 import { Leaf, MessageSquare, AlertCircle } from "lucide-react";
 import { fmt } from "../../shared/utils";
@@ -27,7 +27,7 @@ export default function RequestsTab({ requests, stats, accepting, onChanged }) {
         </div>
         <h3 className="text-base font-bold text-gray-900">Incoming Farmer Requests</h3>
       </div>
-=======
+
 import { AlertCircle, Check, Inbox, Leaf, X } from "lucide-react";
 import { fmt } from "../../shared/utils";
 import Badge from "../../shared/ui/Badge";
@@ -55,13 +55,13 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
             text="When a farmer sends you produce from the market, it lands here."
           />
         )}
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
 
         {requests.map((r) => {
           const status = r.status.toLowerCase();
           const isPending = status === "pending";
           const tooBig = r.kg > stats.remaining;
-<<<<<<< HEAD
+
           const yourTurn = isPending && r.pendingFrom === "farmer";
           const price = r.pendingPrice ?? r.pricePerKg;
 
@@ -96,7 +96,7 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
                     <div className="flex items-center gap-1.5 text-xs text-red-600 font-semibold pt-1" role="alert">
                       <AlertCircle size={14} /> Exceeds free capacity ({fmt(stats.remaining)} kg).
                     </div>
-=======
+
           const pending = normalizeStatus(r.status) === "pending";
           const blocked = tooBig || !accepting;
           const busy = busyId === r.id;
@@ -144,12 +144,12 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
                       <AlertCircle size={14} aria-hidden="true" /> Exceeds free capacity (
                       {fmt(stats.remaining)} kg).
                     </p>
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
                   )}
                 </div>
               </div>
 
-<<<<<<< HEAD
+
               <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
                 {!isPending && (
                   <span
@@ -158,8 +158,7 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
                     }`}
                   >
                     {status.replace("_", " ")}
-                  </span>
-=======
+
               <div className="flex flex-none items-center gap-2 self-end sm:self-center">
                 {pending ? (
                   <>
@@ -185,7 +184,7 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
                   </>
                 ) : (
                   <Badge tone={statusTone(r.status)}>{titleStatus(r.status)}</Badge>
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
                 )}
                 {yourTurn && (
                   <span className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800">
@@ -202,7 +201,7 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
             </article>
           );
         })}
-<<<<<<< HEAD
+
       </div>
 
       {!requests.length && (
@@ -218,9 +217,9 @@ export default function RequestsTab({ requests, stats, accepting, onDecide, busy
         />
       )}
     </section>
-=======
+
       </CardBody>
     </Card>
->>>>>>> bc10d954ae03e2b9d6c2610ba7a6dff6b70d41cf
+
   );
 }
